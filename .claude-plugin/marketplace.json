@@ -23,6 +23,15 @@
       },
       "category": "productivity",
       "source": "./plugins/general-skills"
+    },
+    {
+      "name": "fun-skills",
+      "description": "Fun / personal skills",
+      "author": {
+        "name": "Erin"
+      },
+      "category": "productivity",
+      "source": "./plugins/fun-skills"
     }
   ]
 }
