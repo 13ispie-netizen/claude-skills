@@ -7,13 +7,22 @@
   },
   "plugins": [
     {
-      "name": "erin-skills",
-      "description": "Erin's personal skills: grill-me, process-doc, sync-newsletter-contacts",
+      "name": "aa-skills",
+      "description": "A+A (work) skills: process-doc, sync-newsletter-contacts",
       "author": {
         "name": "Erin"
       },
       "category": "productivity",
-      "source": "./plugins/erin-skills"
+      "source": "./plugins/aa-skills"
+    },
+    {
+      "name": "general-skills",
+      "description": "General / productivity skills: grill-me",
+      "author": {
+        "name": "Erin"
+      },
+      "category": "productivity",
+      "source": "./plugins/general-skills"
     }
   ]
 }
