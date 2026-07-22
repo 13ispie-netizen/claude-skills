@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "erin-skills",
+  "description": "Erin's personal Claude skills, shared across Claude Code, Cowork, and Chat",
+  "owner": {
+    "name": "Erin"
+  },
+  "plugins": [
+    {
+      "name": "erin-skills",
+      "description": "Erin's personal skills: grill-me, process-doc, sync-newsletter-contacts",
+      "author": {
+        "name": "Erin"
+      },
+      "category": "productivity",
+      "source": "./plugins/erin-skills"
+    }
+  ]
+}
