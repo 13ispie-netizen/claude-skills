@@ -179,6 +179,7 @@ Produce a `.docx` file (Google Docs–compatible) using the `docx` npm library.
    - Output every field as a row, whether or not it has a value
    - Group rows under section header rows (bold, full-width, dark background `2E4057`, white text) for: Basic Background Info, Personal Life, Professional Life, Giving Background
    - Do NOT include Photo URL as a table row — it is rendered as an image, not text
+   - **Always hyperlink the LinkedIn URL and the Organization Name** value cells. Render each as an `ExternalHyperlink` (blue `0563C1`, underlined). For LinkedIn, the link points at the profile URL (display the URL, or "LinkedIn"). For Organization Name, link the company name to the organization's website (use a real, verified URL from research; if no URL is known, leave it as plain text — never invent one). If a value carries a `[web]`/`[gmail]` source tag, keep that tag as plain text after the hyperlink.
 
 ### docx generation rules (from docx skill)
 - Install: `npm install -g docx`
@@ -195,11 +196,12 @@ Produce a `.docx` file (Google Docs–compatible) using the `docx` npm library.
 Add a Contact Log table at the bottom of the document, after the profile table. Leave one blank line between them.
 
 ### Table structure
-Four columns:
-- **Date** — 1200 DXA
-- **Format** — 1700 DXA
-- **Name** — 1700 DXA
-- **Description / Notes** — 4760 DXA
+Five columns:
+- **Date** — 1100 DXA
+- **Format** — 1500 DXA
+- **Name** — 1500 DXA
+- **Description / Notes** — 3560 DXA
+- **Notes Link** — 1700 DXA
 
 Column widths must sum to 9360 DXA. Use the same border and cell margin style as the profile table. Header row: dark navy (`2E4057`) background, white bold text.
 
@@ -217,6 +219,8 @@ Column widths must sum to 9360 DXA. Use the same border and cell margin style as
 **Special case — event:** If the format is `event`, stop and ask the user for the event name before generating:
 > "What event was this? I'll use that as the description."
 Then set the description to the event name (e.g., "ULI 2026 Annual Conference").
+
+**Notes Link:** A clickable hyperlink to any meeting-notes document created from that meeting (e.g., the .docx/Google Doc produced by the meeting-notes skill). Render it as an `ExternalHyperlink` with link text `Notes` pointing at the doc's URL. If no notes document exists for that row, leave the cell blank. When notes for a logged meeting are created later, add or update this link. Never invent a URL — only use a real, known document link.
 
 ---
 
@@ -244,7 +248,7 @@ Rules should be written as short, imperative statements. Examples:
 const fs = require('fs');
 const path = require('path');
 const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-        ImageRun, AlignmentType, HeadingLevel, BorderStyle, WidthType,
+        ImageRun, ExternalHyperlink, AlignmentType, HeadingLevel, BorderStyle, WidthType,
         ShadingType, VerticalAlign } = require('docx');
 
 const border = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
@@ -280,7 +284,31 @@ function dataRow(field, value) {
   ]});
 }
 
-// Build rows — replace placeholder strings with extracted values
+// Hyperlinked value row — use for LinkedIn URL and Organization Name.
+// linkText is what shows; url is where it points; trailing is optional plain text (e.g. a " [web]" source tag).
+function linkedDataRow(field, linkText, url, trailing) {
+  const valueChildren = url
+    ? [new ExternalHyperlink({ link: url, children: [new TextRun({ text: linkText, size: 20, color: "0563C1", underline: {} })] })]
+    : [new TextRun({ text: linkText || "", size: 20 })];
+  if (trailing) valueChildren.push(new TextRun({ text: trailing, size: 20 }));
+  return new TableRow({ children: [
+    new TableCell({
+      width: { size: 3500, type: WidthType.DXA }, borders, margins: cellMargins,
+      shading: { fill: "F2F2F2", type: ShadingType.CLEAR },
+      children: [new Paragraph({ children: [new TextRun({ text: field, bold: true, size: 20 })] })]
+    }),
+    new TableCell({
+      width: { size: 5860, type: WidthType.DXA }, borders, margins: cellMargins,
+      shading: { fill: "FFFFFF", type: ShadingType.CLEAR },
+      children: [new Paragraph({ children: valueChildren })]
+    })
+  ]});
+}
+
+// Build rows — replace placeholder strings with extracted values.
+// Use linkedDataRow for LinkedIn URL and Organization Name, e.g.:
+//   linkedDataRow("LinkedIn URL", "https://www.linkedin.com/in/...", "https://www.linkedin.com/in/...", " [web]")
+//   linkedDataRow("Organization Name", "Pratt Institute", "https://www.pratt.edu/")
 const rows = [
   sectionHeaderRow("Basic Background Info"),
   dataRow("Name including nickname", ""),
@@ -329,20 +357,36 @@ function logDataCell(text, width) {
     children: [new Paragraph({ children: [new TextRun({ text: text || "", size: 20 })] })]
   });
 }
+// Notes Link cell: clickable "Notes" hyperlink, or blank if no notes doc exists.
+function logLinkCell(url, width) {
+  const child = url
+    ? new ExternalHyperlink({ link: url, children: [new TextRun({ text: "Notes", size: 20, style: "Hyperlink", color: "0563C1", underline: {} })] })
+    : new TextRun({ text: "", size: 20 });
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA }, borders: logBorders, margins: cellMargins,
+    shading: { fill: "FFFFFF", type: ShadingType.CLEAR },
+    children: [new Paragraph({ children: [child] })]
+  });
+}
 
+const logCols = [1100, 1500, 1500, 3560, 1700];
 children.push(new Table({
   width: { size: 9360, type: WidthType.DXA },
-  columnWidths: [1500, 2000, 5860],
+  columnWidths: logCols,
   rows: [
     new TableRow({ children: [
-      logHeaderCell("Date", 1500),
-      logHeaderCell("Format", 2000),
-      logHeaderCell("Description / Notes", 5860),
+      logHeaderCell("Date", logCols[0]),
+      logHeaderCell("Format", logCols[1]),
+      logHeaderCell("Name", logCols[2]),
+      logHeaderCell("Description / Notes", logCols[3]),
+      logHeaderCell("Notes Link", logCols[4]),
     ]}),
     new TableRow({ children: [
-      logDataCell("MEETING_DATE", 1500),
-      logDataCell("MEETING_FORMAT", 2000),
-      logDataCell("MEETING_DESCRIPTION", 5860),
+      logDataCell("MEETING_DATE", logCols[0]),
+      logDataCell("MEETING_FORMAT", logCols[1]),
+      logDataCell("MEETING_NAME", logCols[2]),
+      logDataCell("MEETING_DESCRIPTION", logCols[3]),
+      logLinkCell("NOTES_DOC_URL_OR_NULL", logCols[4]),
     ]})
   ]
 }));
@@ -375,3 +419,5 @@ _(Rules are appended here automatically as the user defines them during sessions
 - When asking for pronouns, include a direct link to the best public URL where the person's photo can be found, and invite the user to download it and drop it into chat for embedding.
 - Always search Gmail (Gmail:search_threads) for the person's name during profile creation to find their email address and phone number from past correspondence. Mark values found this way with [gmail].
 - Always ask for "Adjectives to Describe" in the same pre-generation message as pronouns. Never skip this question.
+- Contact Log table has FIVE columns: Date (1100 DXA), Format (1500 DXA), Name (1500 DXA), Description / Notes (3560 DXA), Notes Link (1700 DXA). The Notes Link column holds a clickable "Notes" hyperlink to any meeting-notes document created from that meeting; leave blank if none exists, and add/update it when notes are later created.
+- Always hyperlink the LinkedIn URL value and the Organization Name value in the profile table (blue, underlined). Link the org name to the organization's real website; never invent a URL — if none is known, leave it as plain text.
