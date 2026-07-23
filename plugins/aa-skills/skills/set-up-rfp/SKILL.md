@@ -30,14 +30,16 @@ Confirm the **project name** (exact spelling, used in folder names) and get the 
 A+A's fiscal year runs **July 1 - June 30**, named `YY-YY` (e.g. `26-27` = Jul 2026 - Jun 2027). Compute the current FY from today's date: if month >= July, FY = `YY-(YY+1)`; else `(YY-1)-YY`. Look for that folder under the Drive root; **create it if it does not exist**. Confirm the FY with Erin if the opportunity spans a rollover.
 
 ### 2. Create the project folder + subfolders
-Inside the FY folder, create a folder named `[Project Name]`. Inside it, create exactly two subfolders:
-- `00. RFP + Contract`
-- `[Project Name] go/no-go documents`
+Inside the FY folder, create a folder named `[Project Name]`. Then create these **nested** folders:
+- `00. RFP + Contract` (inside the project folder)
+- `[Project Name] go/no-go documents` (inside `00. RFP + Contract`)
+
+So the structure is: `[Project Name]/00. RFP + Contract/[Project Name] go/no-go documents/`.
 
 (Create a folder via `gws drive files create` with `mimeType: application/vnd.google-apps.folder` and the parent in `parents`.)
 
 ### 3. File the source RFP
-Upload the RFP and all supporting documents into **`00. RFP + Contract`**.
+Upload the RFP and all supporting documents into the **`[Project Name] go/no-go documents`** folder.
 
 ### 4. Project Quick Facts sheet -> invoke `rfp-quick-facts`
 Run the **rfp-quick-facts** skill. Tell it: the RFP source files are in `00. RFP + Contract`, and the filled copy of the Quick Facts template goes into the **`[Project Name] go/no-go documents`** folder. That skill reads the RFP in full and fills + brands the sheet.
@@ -55,7 +57,7 @@ Give Erin links to: the project folder, the Quick Facts sheet, and the Gut Check
 
 ## NOTES
 
-- **Document placement:** go/no-go decision docs (Quick Facts, Gut Check) live in `[Project Name] go/no-go documents`; the source RFP and eventual contract live in `00. RFP + Contract`.
+- **Document placement:** everything for the decision (RFP + supporting docs, Quick Facts, Gut Check) goes in `[Project Name] go/no-go documents`, which is nested inside `00. RFP + Contract`. The eventual signed contract goes directly in `00. RFP + Contract`, one level up from the go/no-go folder.
 - Do not fill the Gut Check; do fill the Quick Facts (via rfp-quick-facts).
 - Keep naming exact; the go/no-go subfolder name literally includes "go/no-go documents".
 - Confirm before creating anything if the project folder already exists (avoid duplicates).
