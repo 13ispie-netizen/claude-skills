@@ -108,6 +108,15 @@ Create each task in the **A+A Tasks** Notion database:
 
 ---
 
+## Phase 6 — Mark the End-of-Day Backstop Complete
+
+As the final step, mark today's **"End of Day"** marker task **Done** in the **A+A Tasks** Notion database (data source `7ec52d40-050f-4f14-942e-3ee85f2935cb`). This is a daily recurring weekday task, linked to the **Project Management** project (`2abc9a33-bd41-80e1-984f-d70740a8c18e`), assigned to Architecture + Advocacy.
+
+- Find the task titled `End of Day` whose **Due Date** is today, and set its **Done** status to `Done`.
+- Why: an automated 8pm-weekday cloud routine ("End of Day Backstop") checks this marker first. If it's Done, the backstop skips (no duplicate summary email, no duplicate tasks). If Erin's manual EOD does not mark it Done, the backstop will run at 8pm and do it for her.
+
+---
+
 ## Notes + Standing Rules
 
 - Always check **both Fathom and Granola** — notes may live in either tool.
