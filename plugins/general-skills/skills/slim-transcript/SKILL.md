@@ -1,137 +1,105 @@
 ---
 name: slim-transcript
 description: >
-  Shrink a bloated meeting transcript before reading it, so a 46-minute call costs ~5k tokens instead of ~72k. Use whenever a raw transcript file needs to be read, quoted, or turned into notes — especially `[Said]`/`[Heard]` dual-channel exports full of `Source:` / `Speaker: Unknown` / `Timestamp:` scaffolding and divider rules. Trigger on "slim this transcript", "this transcript is huge", "clean up this transcript", "make this cheaper to read", or any time a transcript over ~500 lines is about to be opened. Also read this BEFORE reading any raw transcript, to check whether a summary already exists that makes reading it unnecessary.
+  Shrink a bloated meeting transcript before reading it, cutting a 46-minute call from ~72k tokens to ~28k. Use whenever a raw transcript file needs to be read, quoted, or turned into notes — especially `[Said]`/`[Heard]` dual-channel exports padded with `Source:` / `Speaker: Unknown` / `Timestamp:` lines and `-----` divider rules. Trigger on "slim this transcript", "this transcript is huge", "clean up this transcript", "make this cheaper to read", or any time a transcript over ~500 lines is about to be opened.
 ---
 
 # Slim a Transcript
 
-Raw transcript exports are the single most expensive thing you can read. They are
-also usually the wrong thing to read. Work through this in order.
+Raw transcript exports are the most expensive thing you can read. A 46-minute
+call runs 2,663 lines and 108 KB, and it tokenises about 2.5x worse than normal
+prose because hyphen rules and ISO timestamps split into many tokens each.
 
----
-
-## Step 0 — Check whether you need the transcript at all
-
-**Do this first, every time.** List the sibling files:
+Run the bundled script first. It works in the shell, so **the transcript never
+enters context** — you pay for the summary statistics, not the content.
 
 ```bash
-ls -la "$(dirname "<transcript>")" | grep -i "$(basename "<transcript>" .md | cut -c1-20)"
+python3 slim_transcript.py "<transcript>"
+python3 slim_transcript.py "<transcript>" --out "<somewhere else>.md"
 ```
 
-If a `*_summary.md`, `*_summary with chapters.md`, or a Fathom/Granola summary
-exists, **read that instead**. A summary is typically 2 KB against the
-transcript's 108 KB — around 98% cheaper — and it has already stripped filler
-and consolidated repeated points.
+It writes a new file beside the input (`..._slim.md`) and refuses to overwrite
+the original. Then read the slim file instead.
 
-The transcript is worth opening only when you need an exact quote, a specific
-number, or a detail the summary omitted. In that case prefer `grep` over reading:
+---
+
+## What it does
+
+One pass, five transforms, no options to choose between:
+
+1. **Strips scaffolding** — `Source:` lines, `Speaker: Unknown` lines (zero
+   information when every value is identical), `-----` dividers, blank padding.
+   On a real file that is 39% of the bytes before a single word is touched.
+2. **Compresses timestamps** — `2026-07-29T16:02:19-07:00` becomes `16:02`, which
+   keeps the ability to cite a moment for almost nothing.
+3. **Drops echo blocks** — dual-channel exports record the same audio twice. On a
+   real call, 98.6% of secondary-channel blocks were ≥80% covered by nearby
+   primary-channel blocks, and only 2.7% of their content words were unique. The
+   redundant ones go; the ones that add something are kept and marked `H*`.
+4. **De-stutters** — `for for us` becomes `for us`.
+5. **Merges by minute** — consecutive same-channel lines in one minute join into
+   one line.
+
+Typical result: **2,663 lines → 82, and 108 KB → 43 KB (60% smaller).**
+
+---
+
+## Read the audit before trusting the output
+
+Every run prints a proper-noun diff: names present in the input but missing from
+the output. **Do not skip it.**
+
+Expect around a dozen entries, most of them sentence-initial common words
+(`Before`, `Otherwise`, `Sounds`). But a real name or product in that list means
+content was genuinely lost. In testing, the echo-dedup dropped the name of a
+"**Kudos**" channel a participant recommended by name — it kept the idea and lost
+the label.
+
+When something substantive appears in that list, grep the original for it and
+restore it by hand:
 
 ```bash
-grep -o ".\{80\}<term>.\{80\}" "<transcript>"
+grep -o ".\{80\}Kudos.\{80\}" "<original>"
 ```
 
-Only if you genuinely must read the body end to end, continue.
-
 ---
 
-## Step 1 — Slim it
+## Heed the attribution warning
 
-The bundled script does the work in the shell, so **the file never enters
-context**. Cost is the summary statistics, not the content.
-
-```bash
-python3 slim_transcript.py "<transcript>"              # safe mode (default)
-python3 slim_transcript.py "<transcript>" --aggressive # smaller, slightly lossy
-```
-
-It writes a new file beside the input (`_slim.md` / `_slim2.md`) and refuses to
-overwrite the original.
-
-### Safe mode — use this by default
-
-Removes only scaffolding: `Source:` lines, `Speaker: Unknown` lines (zero
-information when every value is identical), divider rules, blank padding. Full
-ISO timestamps compress to `HH:MM`, which keeps the ability to cite a moment for
-almost nothing. **Every word of speech survives.**
-
-Typical result: **86% fewer lines, ~37% smaller.**
-
-### Aggressive mode — only when you accept lossiness
-
-Adds two transforms:
-
-- **Echo-channel dedup.** Dual-channel exports render the same audio twice. On a
-  real 46-minute call, 98.6% of `[Heard]` blocks were ≥80% covered by nearby
-  `[Said]` blocks, and only 2.7% of their content words were unique. Blocks that
-  add nothing are dropped; blocks that add something are kept and marked `H*`.
-- **De-stutter.** ASR repeats: `for for us` → `for us`.
-
-Typical result: **90% fewer lines, ~59% smaller.**
-
-Optional flags:
-
-- `--merge` — merge consecutive same-channel lines within a minute. Smaller, but
-  it blends both speakers into one wall of text and is **noticeably worse to
-  read**. Leave off unless you only care about token count.
-- `--strip-times` — drop `HH:MM` entirely. You lose the ability to cite a moment.
-- `--span N` — minutes either side to search for echoed content (default 2).
-
----
-
-## Step 2 — Read the audit before trusting the output
-
-The script prints a proper-noun diff: names present in the input but missing
-from the output. **Do not skip this.**
-
-Safe mode should report `0`. Aggressive mode reports around a dozen, and most
-are sentence-initial common words (`Before`, `Otherwise`, `Sounds`). But a real
-name or product in that list means content was genuinely lost — in testing,
-aggressive mode dropped the name of a "**Kudos**" channel that a participant
-recommended by name, keeping the idea but losing the label.
-
-If the list contains anything substantive, re-run without `--aggressive`.
-
----
-
-## Step 3 — Heed the attribution warning
-
-If the script prints:
+If the run prints:
 
 ```
 WARNING: every speaker label was 'Unknown' -- no attribution is available.
 ```
 
-then the transcript cannot tell you who said what. This matters enormously:
+the transcript cannot tell you who said what. This matters more than the file size:
 
 - **Never** assign action-item ownership from an unattributed transcript.
 - **Never** state that a named person said something specific.
-- Ask who attended and who owns each follow-up before finalising any notes.
-
-Attribute from the calendar invite and confirm with the user instead.
+- Take attendees from the calendar invite, and confirm who owns each follow-up
+  before finalising any notes.
 
 ---
 
 ## Hard rules
 
-- **Never read a raw transcript whole when a summary exists.** Check first.
 - **Never overwrite the original.** The script enforces this; don't work around it.
-- **Never leave clutter.** Delete intermediate slim files once notes are produced,
-  or ask. Three near-duplicate transcripts in one folder is worse than one big one.
-- **Report measured numbers, not estimates.** `wc -l` / `wc -c` are free. Do not
-  guess at a token count and present it as fact.
-- Prefer this over hand-rolling `sed`/`awk` per transcript, so the audit and the
-  attribution warning always run.
+- **Never leave clutter.** Delete the slim file once notes are produced, or ask.
+  Several near-duplicate transcripts in one folder is worse than one big one.
+- **Report measured numbers, not estimates.** `wc -l` and `wc -c` are free. Do not
+  guess a token count and present it as fact.
+- Use this rather than hand-rolling `sed`/`awk` per transcript, so the audit and
+  the attribution warning always run.
 
 ---
 
-## Why the thresholds are what they are
+## Why the echo threshold is what it is
 
-The echo-dedup keeps a secondary block if it contributes **≥2 unique content
-words, OR ≥1 unique word that looks like a proper noun.**
+A secondary block is kept if it contributes **≥2 unique content words, OR ≥1
+unique word that looks like a proper noun.**
 
 That second clause exists because a `>= 2` threshold alone silently dropped
 `ChatGPT` and `Katie` — each contributed exactly one unique word. Rare proper
-nouns are single words by definition, which is precisely why they are worth
-keeping and precisely why a naive word-count threshold discards them. Do not
-"simplify" this back to a single count.
+nouns are single words by definition, which is exactly why they are worth keeping
+and exactly why a naive word count discards them. Do not collapse this back into
+a single count.
