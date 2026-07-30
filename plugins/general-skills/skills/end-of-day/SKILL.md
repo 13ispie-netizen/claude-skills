@@ -69,7 +69,12 @@ For each confirmed meeting with notes, run the **`aa-skills:meeting-notes`** ski
 - Fathom-only meetings → the Fathom summary.
 - **If no transcript or notes exist: do NOT create the doc at all.**
 
-**Filename:** `YYMMDD_[descriptive-name]_meeting-notes.docx` (YYMMDD = meeting date). This name is used in Drive too — no renaming on upload.
+**Filename** (YYMMDD = meeting date; the same name is used in Drive, no renaming on upload):
+
+- **1:1 meetings** → `YYMMDD_Lastname, Firstname_Organization_meeting-notes.docx`
+  e.g. `260729_Wyllie, Meagan_Independent_meeting-notes.docx`
+  The date sorts; the name is how Erin browses. Ask for the person's org if the transcript doesn't give it.
+- **Group meetings** → `YYMMDD_[descriptive-name]_meeting-notes.docx`
 
 **Where to build it:** notes are **Drive-only** (see Phase 3). Build to a scratch location, not into an HQ folder. There is no local copy of meeting notes.
 
@@ -84,6 +89,8 @@ Meeting notes live in Google Drive only. Route each doc with this decision tree,
 1. **Project-related** (1:1 or group) → that project's Drive folder. **A project relation supersedes the 1:1 folder.** Always ask which folder; there is no default.
 2. **External 1:1, not project-related** → **"1:1 Notes_Erin"**, folder `1Nmp0tb0TxKJ28axXqUD_kRaqAfaAetoV` (its own shared drive).
 3. **Group or internal, not project-related** → ask. For community/partner outreach meetings, suggest **"25-26 Community Partner Outreach"**, folder `1yplER9ldBWeiY9phj-s7ubKp6UrzEwyW` (parent "02. LA Community Partners" `1Q6zinSc7Bm8rezCYeBwkkmL0m4idMr3F`, LA Chapter Programs shared drive). **Fiscal-year rollover:** A+A's fiscal year ends at the end of August. Once FY26-27 begins, create "26-27 … Outreach" in the same parent and use that instead.
+
+Filenames carry over from Phase 2 unchanged — 1:1s are `YYMMDD_Lastname, Firstname_Organization_meeting-notes.docx`, group notes are `YYMMDD_[descriptive-name]_meeting-notes.docx`.
 
 **Capture the Drive file URL for every upload.** Phase 4 needs it for the contact-log hyperlink.
 
