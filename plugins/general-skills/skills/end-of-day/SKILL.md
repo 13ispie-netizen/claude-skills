@@ -1,12 +1,12 @@
 ---
 name: end-of-day
 description: >
-  Run Erin's end-of-day workflow — pull today's meetings from all four A+A calendars, create meeting note docs and save them to the HQ matching each meeting's topic (confirm destination every time), update the CRM for external 1:1s, draft thank-you emails for external 1:1s, and capture to-dos as Notion tasks with project links. Trigger whenever Erin says "end of day", "EOD routine", "wrap up today", "run my end of day", or "let's close out the day." Always use this skill when the intent is wrapping up the workday — even if she just says "can you do my EOD?" or "run the workflow."
+  Run Erin's end-of-day workflow — pull today's meetings from all four A+A calendars plus Fathom and the Cowork Playground, slim any raw transcripts, build meeting notes with the meeting-notes skill, upload them to the right Google Drive folder, update CRM contact logs for external 1:1s, draft thank-you emails into Gmail drafts, capture to-dos as Notion tasks with project links, and mark the end-of-day backstop Done. Trigger whenever Erin says "end of day", "EOD routine", "wrap up today", "run my end of day", or "let's close out the day." Always use this skill when the intent is wrapping up the workday — even if she just says "can you do my EOD?" or "run the workflow."
 ---
 
 # End-of-Day Workflow
 
-Erin's structured close-of-day routine. Run all six phases in order, pausing for confirmation at each phase gate.
+Erin's structured close-of-day routine. Run all seven phases in order, pausing for confirmation at each phase gate.
 
 ---
 
@@ -20,7 +20,7 @@ Pull today's calendar events from all four A+A calendars:
 
 Then check these two sources for today's transcripts or notes and match them to calendar events by title or time:
 
-- **Fathom** (`mcp__c03aadc8...list_meetings`) — Fathom sometimes processes recordings the following day; if a meeting isn't found, search by title with a 2-day window. Read the **summary** (`get_meeting_summary`), not the full transcript, unless a detail is missing.
+- **Fathom** (`mcp__c03aadc8...list_meetings`) — Fathom sometimes processes recordings the following day; if a meeting isn't found, search by title with a 2-day window. Read the **summary** (`get_meeting_summary`), not the full transcript, unless a detail is missing. Keep the recording URL — Phase 4 needs it.
 - **Cowork Playground** — the local vault at `/Users/erin/Documents/Cowork Playground/`, the ONLY local folder to search. List files modified today and report the filenames:
 
   ```bash
@@ -39,19 +39,21 @@ If a note already exists in the Playground for a meeting, flag it: another autom
 python3 <slim-transcript skill dir>/slim_transcript.py "<transcript path>"
 ```
 
-This writes `<name>_slim.md` beside the original and leaves the original untouched. Cuts a 46-minute call from ~72k tokens to ~28k. **From this point on, the slim file is the transcript** — Phase 2's meeting notes, Phase 3's CRM extraction, and Phase 5's to-do extraction all read the slim file. Never read the raw original; `grep` it only to recover a specific quote.
+This writes `<name>_slim.md` beside the original and leaves the original untouched. Cuts a 46-minute call from ~72k tokens to ~28k. **From this point on, the slim file is the transcript** — Phases 2, 4 and 6 all read the slim file. Never read the raw original; `grep` it only to recover a specific quote.
 
 Two outputs of that run must be acted on, not skimmed past:
 
 - **Proper-noun audit.** It lists names present in the original but missing from the slim file. Anything substantive means real content was lost — grep the original and restore it by hand before writing notes.
-- **Attribution warning.** If it reports every speaker label is `Unknown`, the transcript cannot tell you who said what. Take attendees from the calendar invite, never assign action-item ownership from the transcript, and confirm owners with Erin in Phase 5.
+- **Attribution warning.** If it reports every speaker label is `Unknown`, the transcript cannot tell you who said what. Take attendees from the calendar invite, never assign action-item ownership from the transcript, and confirm owners with Erin in Phase 6.
 
-Delete the `_slim.md` files at the end of the run, or ask — don't leave near-duplicates in the HQ.
+Delete the `_slim.md` files at the end of the run, or ask — don't leave near-duplicates in the Playground.
+
+### Present the list
 
 Present a numbered list of confirmed meetings. For each, note:
 - Meeting title
 - Time
-- Type: **1:1** or **Group**
+- Type: **1:1** or **Group**, and **internal** or **external**
 - Whether notes/transcript were found (and in which tool)
 
 Wait for Erin to confirm or correct the list before proceeding.
@@ -60,76 +62,84 @@ Wait for Erin to confirm or correct the list before proceeding.
 
 ## Phase 2 — Create Meeting Note Docs
 
-**Source material:** for any meeting whose transcript came from the Cowork Playground, work from the **slim file produced in Phase 1** — never the raw original. For Fathom-only meetings, work from the Fathom summary.
+For each confirmed meeting with notes, run the **`aa-skills:meeting-notes`** skill. That skill owns the document structure (Meeting Details, Executive Summary, Action Items, Decisions Made, Key Discussion Topics, Timeline & Next Steps, Reference Materials) and A+A branding via **`aa-skills:aa-document-template`**. Do not hand-roll a different format here.
 
-For each confirmed meeting with notes, create a `.docx` file using the **docx** skill.
+**Source material:**
+- Playground transcripts → the **slim file from Phase 1**, never the raw original.
+- Fathom-only meetings → the Fathom summary.
+- **If no transcript or notes exist: do NOT create the doc at all.**
 
-**Naming convention:**
-- 1:1: `YYMMDD_Erin x [Name]_[short description].docx`
-- Group: `YYMMDD_[Group or Topic]_[short description].docx`
+**Filename:** `YYMMDD_[descriptive-name]_meeting-notes.docx` (YYMMDD = meeting date). This name is used in Drive too — no renaming on upload.
 
-**Doc contents:**
-- Title (H1): meeting name
-- Meta rows (bold label + plain value): Date, Time, Attendees, Meeting Type
-- If Fathom recording(s) exist: add a "Fathom Recording: [View]" hyperlink row for each
-- Horizontal rule divider
-- H2 sections for each topic covered, with bullet points
-- Final H2 "Next Steps": one bullet per action item with owner and due date if known
-- If no transcript or notes exist: do NOT create the doc at all.
+**Where to build it:** notes are **Drive-only** (see Phase 3). Build to a scratch location, not into an HQ folder. There is no local copy of meeting notes.
 
-**Save location:** Meeting notes are stored in the HQ that corresponds to the meeting's topic — there is no standalone Meeting Notes HQ (retired 2026-07-09). **Always ask Erin to confirm the destination HQ before saving any meeting note**, even when the topic seems obvious. Save into that HQ's root unless Erin specifies a subfolder. Do NOT upload to Google Drive unless Erin explicitly asks.
-
-**Internal meetings (all @architectureandadvocacy.org attendees):** Skip Phases 3 and 4 entirely.
+**Internal meetings (all @architectureandadvocacy.org attendees):** Skip Phases 4 and 5 entirely.
 
 ---
 
-## Phase 3 — Update CRM Contact Log (1:1s only, external meetings only)
+## Phase 3 — Upload Notes to Google Drive
+
+Meeting notes live in Google Drive only. Route each doc with this decision tree, **in order** — the first match wins:
+
+1. **Project-related** (1:1 or group) → that project's Drive folder. **A project relation supersedes the 1:1 folder.** Always ask which folder; there is no default.
+2. **External 1:1, not project-related** → **"1:1 Notes_Erin"**, folder `1Nmp0tb0TxKJ28axXqUD_kRaqAfaAetoV` (its own shared drive).
+3. **Group or internal, not project-related** → ask. For community/partner outreach meetings, suggest **"25-26 Community Partner Outreach"**, folder `1yplER9ldBWeiY9phj-s7ubKp6UrzEwyW` (parent "02. LA Community Partners" `1Q6zinSc7Bm8rezCYeBwkkmL0m4idMr3F`, LA Chapter Programs shared drive). **Fiscal-year rollover:** A+A's fiscal year ends at the end of August. Once FY26-27 begins, create "26-27 … Outreach" in the same parent and use that instead.
+
+**Capture the Drive file URL for every upload.** Phase 4 needs it for the contact-log hyperlink.
+
+Confirm the destination with Erin before uploading — every time, even when it seems obvious.
+
+---
+
+## Phase 4 — Update CRM Contact Log (external 1:1s only)
 
 **Skip this phase for group meetings and internal A+A meetings.**
 
-For each external 1:1, use the **crm-extractor** skill to pull structured profile data from the **slim transcript** from Phase 1 (or the Fathom summary if no transcript exists) and update the contact's record.
+Two parts, both driven by the **meeting notes doc** from Phase 2 — not the raw transcript.
 
----
+### 4a — Profile data
 
-## Phase 4 — Draft Thank-You Emails (1:1s only, external meetings only)
+Use the **`aa-skills:crm-extractor`** skill to pull structured profile data from the meeting notes (falling back to the slim transcript or Fathom summary for detail) and update the contact's record.
 
-**Skip this phase for group meetings and internal A+A meetings.**
+### 4b — Contact Log row
 
-For each external 1:1, use the **thank-you-email** skill to draft a follow-up. Present the draft to Erin for review before sending.
-
----
-
-## Phase 4.5 — Log Meetings to Existing CRM Profile Contact Logs
-
-**Applies to ALL of today's meetings (1:1 and group, internal or external) — not limited to external 1:1s.**
-
-For every meeting today, check each attendee against the **existing** CRM profiles in the profiles Drive folder (`1aaj3JQ372IYMh7pRmNY5B5tSeKU_dGDS`). If an attendee has a profile there, append a row to that profile's **Contact Log** table. **Only update profiles that already exist — never create a new profile in this step.**
+Check each attendee against the **existing** CRM profiles in the profiles Drive folder (`1aaj3JQ372IYMh7pRmNY5B5tSeKU_dGDS`). If an attendee has a profile, append a row to that profile's **Contact Log**. **Only update profiles that already exist — never create a new profile in this step.**
 
 **Matching (email first, then name):**
 1. List the .docx files in the profiles folder.
-2. For each meeting attendee, first match the attendee's **email** to the profile's **Email** field (read the profile's contents to get it). If no email match, fall back to matching the attendee **name** to the profile filename (`Lastname, Firstname_Category.docx`).
-3. If neither matches an existing profile, skip that attendee (do not create anything).
+2. Match the attendee's **email** to the profile's **Email** field (read the profile to get it). If no email match, fall back to matching the attendee **name** against the filename (`Lastname, Firstname_Category.docx`).
+3. If neither matches, skip that attendee — do not create anything.
 
-**Appending the Contact Log row** (the Contact Log is the last table in the profile; it has five columns — Date, Format, Name, Description / Notes, Notes Link):
+**Row values** (the Contact Log is the last table in the profile; five columns — Date, Format, Name, Description / Notes, Notes Link):
 - **Date:** meeting date (MM/DD/YYYY)
 - **Format:** `email`, `phone call`, `in-person meeting`, `zoom meeting`, or `event` (infer from the calendar event; if ambiguous use `meeting`)
 - **Name:** who the profile subject met with — default `Erin`
 - **Description / Notes:** one concise sentence on the meeting's purpose
-- **Notes Link:** a clickable `Notes` hyperlink to the meeting-notes doc created in Phase 2. **If no notes doc exists for that meeting, leave this cell blank.**
+- **Notes Link:** **two hyperlinks** — a `Notes` link to the Drive URL captured in Phase 3, and a `Fathom` link to the recording URL from Phase 1. Include whichever exist; leave the cell blank if neither does.
 
-**How to edit the .docx (manual run):** download the profile from Drive, open it with **python-docx**, select the last table (the Contact Log), `add_row()`, set the five cell values (add the Notes Link as a real hyperlink), save, and re-upload to Drive **replacing the same file** (same file ID) via the `gws drive files update --upload` flow. Do not create a new file — that would duplicate the profile.
+**How to edit the .docx:** download the profile from Drive, open with **python-docx**, select the last table (the Contact Log), `add_row()`, set the five cell values (both links as real hyperlinks), save, and re-upload **replacing the same file** (same file ID) via `gws drive files update --upload`. Never create a new file — that duplicates the profile.
 
-Present a summary of which profiles you updated (and which attendees had no existing profile) before moving on.
+Present a summary of which profiles were updated, and which attendees had no existing profile, before moving on.
 
 ---
 
-## Phase 5 — Capture To-Dos in Notion
+## Phase 5 — Draft Thank-You Emails (external 1:1s only)
 
-**Step 5a — Extract to-dos**
+**Skip this phase for group meetings and internal A+A meetings.**
 
-Scan all meeting notes from today for action items and to-dos. Present the full list to Erin for review and correction before proceeding. Then ask: "Are there any additional to-dos to add?"
+For each external 1:1, use the **`aa-skills:thank-you-email`** skill to draft a follow-up. Subject line is always **"Thank you!"**.
 
-**Step 5b — Confirm task details**
+Present each draft to Erin for review, then **save it to the Gmail drafts box** (`mcp__claude_ai_Gmail__create_draft`). Do not send.
+
+---
+
+## Phase 6 — Capture To-Dos in Notion
+
+**Step 6a — Extract to-dos**
+
+Scan all of today's meeting notes for action items and to-dos. Present the full list to Erin for review and correction before proceeding. Then ask: "Are there any additional to-dos to add?"
+
+**Step 6b — Confirm task details**
 
 For each task, confirm:
 1. **Due date** (if not clear from notes)
@@ -141,7 +151,7 @@ If a task requires a **new project**, ask for:
 - **Team Responsible** — always prompt with these exact options: NY Chapter, LA Chapter, Board, Executive Team, Grants Working Group, Fundraising, Business Development/Marketing, Finances
 - Due date for the project (if known)
 
-**Step 5c — Create new projects (if needed)**
+**Step 6c — Create new projects (if needed)**
 
 Create new projects in the **Projects** Notion database:
 - Data source ID: `54eba13d-b4c0-412f-8ec4-d1cf8f8a1fcd`
@@ -149,7 +159,7 @@ Create new projects in the **Projects** Notion database:
 - Always set **"Team Responsible"** — never create a project without it
 - Set due date if provided
 
-**Step 5d — Create Notion tasks**
+**Step 6d — Create Notion tasks**
 
 Create each task in the **A+A Tasks** Notion database:
 - Data source ID: `7ec52d40-050f-4f14-942e-3ee85f2935cb`
@@ -161,7 +171,7 @@ Create each task in the **A+A Tasks** Notion database:
 
 ---
 
-## Phase 6 — Mark the End-of-Day Backstop Complete
+## Phase 7 — Mark the End-of-Day Backstop Complete
 
 As the final step, mark today's **"End of Day"** marker task **Done** in the **A+A Tasks** Notion database (data source `7ec52d40-050f-4f14-942e-3ee85f2935cb`). This is a daily recurring weekday task, linked to the **Project Management** project (`2abc9a33-bd41-80e1-984f-d70740a8c18e`), assigned to Architecture + Advocacy.
 
@@ -177,9 +187,10 @@ As the final step, mark today's **"End of Day"** marker task **Done** in the **A
 - **Every Playground transcript gets slimmed before it is read.** Run slim-transcript in Phase 1; all later phases read the slim file. Reading a raw dual-channel export costs ~72k tokens and is never justified.
 - **Never infer who said what from an unattributed transcript.** These exports label every speaker `Unknown`. Attendees come from the calendar invite; action-item owners get confirmed with Erin.
 - Never create a doc for a meeting with no notes or transcript.
-- Meeting notes are saved to the HQ matching the meeting's topic, never a standalone Meeting Notes HQ. Always confirm the destination HQ with Erin before saving. Not Google Drive unless Erin explicitly asks.
+- **Meeting notes are Drive-only.** No local HQ copy. Confirm the Drive destination with Erin before every upload, and remember that a project relation beats the 1:1 folder.
+- Use `aa-skills:meeting-notes` for the doc — never a hand-rolled format.
 - Always ask for the **project relation** when capturing Notion tasks — required every time.
-- Phases 3 and 4 apply to external 1:1 meetings only. Skip for internal A+A meetings and all group meetings.
+- Phases 4 and 5 apply to external 1:1 meetings only. Skip for internal A+A meetings and all group meetings.
 - The Notion "Parent Project" field is a read-only rollup. To link a task to a project, update the **project page's** Tasks relation, not the task directly.
 - When adding multiple tasks to one project, make one `update_properties` call per task URL — the API does not accept comma-separated URLs.
 - New projects always require: template applied + Team Responsible set before creation.
