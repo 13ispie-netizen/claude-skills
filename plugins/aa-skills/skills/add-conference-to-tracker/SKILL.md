@@ -62,55 +62,78 @@ conference's own website — never inventing values.
   state the notification date when the website doesn't. If the form is sign-in restricted
   (`FAIpQLS` links return 401 to any fetch), ask Erin what it says rather than estimating.
 
-### Conference Name (D) + Organization (E) — hyperlinked
+### Conference Name (E) + Organization (F) — hyperlinked
 Write both as live hyperlink formulas with `valueInputOption: USER_ENTERED`:
 ```
 =HYPERLINK("https://www.example.org/conference","ACD49: Enduring Optimism")
 ```
 
-### Submitted Title (F)
+### Submitted Title (G)
 The **exact** session/proposal title as submitted. Verbatim from the application doc.
 
-### Estimated Cost (G) — always calculate it
-Use A+A's standard travel formula:
+### Estimated Cost (H) — a LIVE FORMULA, never a typed number
+Column H is a self-calculating column. **Write the formula, not a computed dollar amount** — it
+recalculates when the speaker list or conference dates change.
 
+The math it implements:
 ```
-Estimated Cost = ($500 x number of presenters)        <- air travel
-               + ($300 x number of conference days)   <- one hotel room per day
-               + ($100 x presenters x days)           <- per person per day
+Estimated Cost = ($500 x presenters)            <- air travel, per presenter
+               + ($100 x presenters x days)     <- per diem, per person per day
+               + ($300 x (days + 1))            <- one hotel room, one extra night
+```
+- `presenters` = count of comma-separated first names in column J.
+- `days` = conference length from column D (`end date - start date + 1`; a single date = 1 day).
+- The room is billed for **days + 1** nights (arrive the night before), one room total — not one
+  room per presenter.
+
+Paste this into H for the new row (adjust the row number), with
+`valueInputOption: USER_ENTERED`:
+```
+=IFERROR(LET(d,TRIM(D2),n,IF(TRIM(J2)="",0,COUNTA(SPLIT(J2,","))),e,IF(ISNUMBER(SEARCH("-",d)),TRIM(REGEXEXTRACT(d,"-\s*(.+)$")),d),s,IF(ISNUMBER(SEARCH("-",d)),TRIM(REGEXEXTRACT(d,"^([^-]+)")),d),y,REGEXEXTRACT(e,"(\d{2,4})$"),sf,IF(REGEXMATCH(s,"^\d+[/-]\d+[/-]\d+$"),s,s&"/"&y),days,DATEVALUE(e)-DATEVALUE(sf)+1,IF(OR(d="",n=0),"",n*500+n*100*days+300*(days+1))),"")
 ```
 
-Example: 2 presenters, 2-day conference =
-`(500 x 2) + (300 x 2) + (100 x 2 x 2)` = `$1,000 + $600 + $400` = **$2,000**.
+It handles `10/02 - 10/03/2026`, `11/1/26 - 11/3/26` (start date missing its year), and single
+dates like `05/27/26`. Blank date or blank speakers returns blank; junk in the date column
+(e.g. a conference name) falls through to blank rather than `#VALUE!`.
+
+Format the cell as currency (`$#,##0`) after writing, or the result shows as a bare `1200`:
+```
+{"repeatCell":{"range":{"sheetId":0,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":7,"endColumnIndex":8},
+ "cell":{"userEnteredFormat":{"numberFormat":{"type":"CURRENCY","pattern":"$#,##0"}}},
+ "fields":"userEnteredFormat.numberFormat"}}
+```
+If `repeatCell` silently doesn't take on a cell, use `updateCells` with the same range and
+`fields: "userEnteredFormat.numberFormat"` — that works where repeatCell occasionally won't.
 
 Notes:
-- One room total per day, not one per presenter.
-- If the conference dates aren't known yet, don't guess the day count — leave blank and tell Erin
-  what's missing.
-- If Erin gives real numbers (an actual flight quote, a comped room, a local conference with no
-  airfare), use hers instead and say which line you overrode.
+- Sanity-check the result. `"Erin, Bee, etc."` in column J counts as **3** presenters — flag
+  junk entries rather than trusting the number.
+- If Erin gives real numbers (an actual flight quote, a comped room, a local event with no
+  airfare), hardcode hers instead and tell her you replaced the formula on that row.
 
-### Payment to Speaker (H)
+### Payment to Speaker (I)
 **`$0` unless the opportunity explicitly says speakers are paid.** Do not leave blank — $0 is the
 real answer for almost every conference A+A applies to.
 
-### A+A Speakers (I) + A+A Point Person (O)
+### A+A Speakers (J) + A+A Point Person (P)
 - Speakers = first names of everyone presenting, comma-separated (`Erin, Abri`), taken from the
   application's presenter + additional-presenter fields.
+- **The comma-separated count drives the Estimated Cost formula** — keep it clean first names
+  only, no "etc." or trailing commas.
 - Point Person = whoever is responsible for submitting.
 
-### Google Drive Folder (J)
+### Google Drive Folder (K)
 Hyperlink to the opportunity's Drive folder. If there's no folder yet, hyperlink the application
 doc itself and flag to Erin that a proper folder may be wanted.
 
-### Quick Description (K) — the CONFERENCE, not our submission
+### Quick Description (L) — the CONFERENCE, not our submission
 - **Under 3 sentences.** Honor that limit literally; no padding with semicolons or em dashes.
 - Describe the **conference itself** — its theme, host, and what it's about. Our session title
-  belongs in column F, not here.
+  belongs in the Submitted Title column, not here.
 - **Lead with the category we submitted under** (e.g. "Submitted under: Practitioner Project
   (10-15 min presentation + 10 min discussion).") — that context is worth keeping.
 
-### Primary Audience (L)
+### Primary Audience (M)
 Who attends, in the conference's own framing (e.g. "Community designers, planners, architects,
 landscape architects, allied practitioners/students").
 
@@ -130,9 +153,11 @@ landscape architects, allied practitioners/students").
    row with a matching due date) — flag it to Erin rather than silently deleting it.
 4. Insert a blank row at the top (`insertDimension`, `startIndex: 1`, `endIndex: 2`,
    `inheritFromBefore: false`).
-5. Write the full row into row 2 with `valueInputOption: USER_ENTERED` so the hyperlinks resolve.
-6. **Read row 2 back and verify** — confirm each value landed under the header it belongs to, and
-   that no value was truncated or shifted.
+5. Write the full row into row 2 with `valueInputOption: USER_ENTERED` so the hyperlinks and the
+   Estimated Cost formula resolve. Apply currency formatting to the Estimated Cost cell.
+6. **Read row 2 back and verify** — confirm each value landed under the header it belongs to, that
+   no value was truncated or shifted, and that Estimated Cost computed a sane number rather than
+   blank or `#VALUE!`.
 7. Reply to Erin with a short table of what was filled, an explicit list of what was left blank
    and why, and **always include the clickable link back to the sheet.**
 
