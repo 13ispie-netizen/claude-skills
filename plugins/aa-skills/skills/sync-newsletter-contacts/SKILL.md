@@ -107,8 +107,8 @@ then `https://people.googleapis.com/v1/people:batchGet?resourceNames=…&resourc
 | Sheet column | Source on the Google Contact |
 |---|---|
 | A `email` | primary `emailAddresses[].value` (the one with `metadata.primary: true`, else the first) |
-| B `First name` | `names[0].givenName`; if blank, the part of the email before `@` |
-| C `Last name` | `names[0].familyName`; leave blank if absent (Phase B substitutes a placeholder) |
+| B `First name` | `names[0].givenName`, credential suffixes stripped. **Leave BLANK if the contact has no name** — do not put the email local-part in the sheet (that's a Phase B / Squarespace-only fallback). |
+| C `Last name` | `names[0].familyName`, credential suffixes stripped. Blank if absent (Phase B substitutes a placeholder). |
 | D `Company` | `organizations[0].name` |
 | E `Job Title` | `organizations[0].title` (append `, <department>` only if the title alone is meaningless) |
 | F `Pronouns` | parse a `Pronouns: …` line out of `biographies[0].value` — the auto-tagger stores them there. Blank if absent. |
@@ -148,6 +148,19 @@ Ignore the `'@Level 1–4`, roster, event, and campaign groups — they carry no
 `Student/Volunteer` and `Other` are legacy sheet-only values with no Contacts equivalent; never
 auto-assign them, and don't overwrite them if a row already has one.
 
+**Strip credential suffixes from names.** Google Contacts routinely has them jammed into the
+`familyName` field (`"Chan, AIA, Leed AP"`), which then reads as the person's surname on a
+newsletter. Remove them from BOTH name fields before writing:
+
+> AIA · FAIA · Assoc. AIA · NOMA · AICP · ASLA · FASLA · LEED / LEED AP (+ BD+C, ND, ID+C) ·
+> NCARB · PE · RA · PLA · Ph.D. · PsyD · EdD · MD · DDS · JD · Esq. · CPA · MBA · MPA · MPH ·
+> MSW · LCSW · RN · CFA · CFRE · PMP · MArch · MUP
+
+Match case-insensitively on a word boundary, then clean up orphaned commas and double spaces.
+Only strip from this known list — **leave unrecognized trailing tokens alone** rather than
+guessing (`"Larson CAN"` stays as-is; a real surname must never be truncated). Do not strip
+anything from `Company` or `Job Title` — credentials belong there.
+
 **Skip and report separately:** any `'@@new` member with **no email address** — there's nothing to
 put on a mailing list. Do not fabricate one.
 
@@ -180,7 +193,9 @@ column. Then confirm from the response's `updates.updatedRange` which rows were 
 those row numbers into Phase B. If `Synced` is not column J on this run, reorder the cells to match
 the layout you confirmed in step 0.
 
-Tell Erin how many were appended and at which rows, then continue straight into Phase B.
+Note how many were appended and at which rows, then **continue straight into Phase B without
+pausing.** Erin's instruction (2026-07-30): do not stop for a go-ahead between phases. Run the
+whole thing end to end and report once at the finish.
 
 ---
 
@@ -199,11 +214,14 @@ often exceeds the tool's token cap and gets saved to a file — parse it with a 
 
 This set = the Phase A additions **+** anything Erin added by hand since the last run.
 
-### 6. Show the user and confirm
+### 6. Proceed — do not wait for confirmation
 
-List the to-add contacts (email + name) and how many, flagging which came from `'@@new` this run
-versus which were already sitting unsynced. **Wait for confirmation** before writing anything to
-Squarespace. If none, report "nothing new to sync" and skip to step 9.
+**Run straight through.** Do not pause to ask permission before writing to Squarespace; Erin does
+not want a checkpoint mid-run. If there's nothing to add, report "nothing new to sync" and skip to
+step 9. Anything questionable (garbled names, contacts with no name, people who look like vendors
+rather than newsletter audience) gets **synced anyway and flagged in the step 9 report** — she'd
+rather clean up afterward than answer questions mid-run. Adding a wrong person to a mailing list is
+reversible; blocking the run is the bigger cost.
 
 ### 7. Create each contact in Squarespace
 
@@ -219,6 +237,13 @@ The same email can appear on more than one row — create the contact once, but 
 matching row synced.
 
 ### 8. Mark synced rows
+
+**Re-read the sheet first and match by EMAIL, not by cached row number.** Erin edits this sheet
+while the skill is running — during the 2026-07-30 run a row was deleted mid-run and every row
+below it shifted up by one, which would have marked the wrong people. Re-read `A1:L5000`,
+re-confirm the `Synced` column index from the header, then map each successful email to its
+*current* row. An email that has vanished from the sheet was deleted deliberately — skip it,
+don't re-add it.
 
 Write `yes` into the `Synced` column for every successful row, in ONE batched write to
 `values:batchUpdate` (POST, `fail_on_errors` `"true"`):
