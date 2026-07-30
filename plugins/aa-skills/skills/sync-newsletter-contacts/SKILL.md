@@ -113,25 +113,40 @@ then `https://people.googleapis.com/v1/people:batchGet?resourceNames=…&resourc
 | E `Job Title` | `organizations[0].title` (append `, <department>` only if the title alone is meaningless) |
 | F `Pronouns` | parse a `Pronouns: …` line out of `biographies[0].value` — the auto-tagger stores them there. Blank if absent. |
 | G `Location` | from `addresses[0]`: `City, ST` (`city` + `region`). Blank if there's no address — do not guess from the org. |
-| H `Category` | map from the contact's category group membership (table below). Blank if none matches. |
+| H `Category` | the contact's category group name(s), verbatim (table below). Blank if none matches. |
 | I `A+A Point Person` | always **`Erin`** |
 | J `Synced` | **leave blank** — Phase B fills it |
 
-**Category group → sheet Category value.** The sheet's taxonomy is narrower than the Contacts
-groups, and column H is mostly blank today (only ~16 of 951 rows filled), so a blank is completely
-normal. Never invent a value.
+**Category group → sheet Category value.** As of 2026-07-30 the sheet uses the **Google Contacts
+group names verbatim** — there is no translation layer, so write the group name exactly as it
+appears. Column H was backfilled from Contacts on that date (247 of 951 rows filled); a blank is
+still completely normal for anyone not in a category group. Never invent a value.
 
 | Google Contacts group | Sheet `Category` |
 |---|---|
-| AEC Firm (`56b866188a20d8b7`) | `AEC` |
-| Community-Based Non-Profit (`12a592488880e312`) | `Community-Based Nonprofit` |
-| Non-profit: other (`1d87800c8f4021ff`) | `Institutional Nonprofit` |
-| Gov't (`5e1e6c01098dcb01`), Developer (`406ebafe0fce041f`), Foundation (`944616a8c6072b2`), family foundation (`53b811ba0f8d272d`), Event Venue (`25ba767509d554a2`), Real-Estate PR (`6c58a71d8919a864`) | `Other` |
+| AEC Firm (`56b866188a20d8b7`) | `AEC Firm` |
+| Community-Based Non-Profit (`12a592488880e312`) | `Community-Based Non-Profit` |
+| Non-profit: other (`1d87800c8f4021ff`) | `Non-profit: other` |
+| Gov't (`5e1e6c01098dcb01`) | `Gov't` |
+| Developer (`406ebafe0fce041f`) | `Developer` |
+| Foundation (`944616a8c6072b2`) | `Foundation` |
+| family foundation (`53b811ba0f8d272d`) | `family foundation` |
+| Event Venue (`25ba767509d554a2`) | `Event Venue` |
+| Real-Estate PR (`6c58a71d8919a864`) | `Real-Estate PR` |
 | no category group at all | *(blank)* |
 
+**A contact in two or more category groups gets all of them**, comma-space separated and
+alphabetical — e.g. `AEC Firm, Non-profit: other`. Do not pick a winner and do not leave it blank.
+
+Column H carries a **non-strict dropdown** (`ONE_OF_LIST`, `strict: false`, `showCustomUi: true`)
+over the nine group names plus two legacy values, `Student/Volunteer` and `Other`. Non-strict is
+deliberate: Google Sheets has no native multi-select dropdown, so the list has to *warn* rather than
+*reject* or the comma-joined multi-category cells would be blocked. If you ever re-set this
+validation, keep `strict: false`.
+
 Ignore the `'@Level 1–4`, roster, event, and campaign groups — they carry no Category meaning.
-(`Student/Volunteer` exists in the sheet but has no Contacts-group equivalent; leave blank rather
-than guessing.)
+`Student/Volunteer` and `Other` are legacy sheet-only values with no Contacts equivalent; never
+auto-assign them, and don't overwrite them if a row already has one.
 
 **Skip and report separately:** any `'@@new` member with **no email address** — there's nothing to
 put on a mailing list. Do not fabricate one.
