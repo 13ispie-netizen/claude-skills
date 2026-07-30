@@ -1,11 +1,11 @@
 ---
 name: crm-extractor
-description: "Extract structured CRM profile data from meeting transcripts and export as a Google Docs–compatible .docx file with a photo and formatted table. Use this skill whenever the user uploads or pastes a meeting transcript and wants to update a person's CRM record, contact profile, or people database. Trigger on phrases like \"update the profile,\" \"extract from this transcript,\" \"fill in the CRM,\" \"meeting notes,\" or any time a transcript is provided alongside a request to capture information about a person. Always use this skill when a transcript is present and the goal is structured data extraction — even if the user just says \"here's my notes from a call.\""
+description: "Extract structured CRM profile data from meeting transcripts and store it in Google Drive as a native Google Doc with a photo and formatted tables. Use this skill whenever the user uploads or pastes a meeting transcript and wants to update a person's CRM record, contact profile, or people database. Trigger on phrases like \"update the profile,\" \"extract from this transcript,\" \"fill in the CRM,\" \"meeting notes,\" or any time a transcript is provided alongside a request to capture information about a person. Always use this skill when a transcript is present and the goal is structured data extraction — even if the user just says \"here's my notes from a call.\""
 ---
 
 # CRM Extractor Skill
 
-Extract structured profile data from meeting transcripts and output a Google Sheets–compatible CSV using the exact A+A CRM field schema.
+Extract structured profile data from meeting transcripts and store a native Google Doc profile in the CRM folder, using the exact A+A CRM field schema.
 
 ## Core Principles
 
@@ -157,9 +157,17 @@ Field 36 (Employment History) must capture ALL roles mentioned across time:
 
 ## Output Format
 
-Produce a `.docx` file (Google Docs–compatible) using the `docx` npm library.
+Build a `.docx` with the `docx` npm library, then **store it in Drive as a native Google Doc** (see "Storing the profile in Drive" below). The .docx is an intermediate, not the deliverable.
 
-- File name: `Lastname, Firstname_[Category].docx`
+Why native Google Docs rather than a stored .docx:
+
+- **A stored .docx can be silently corrupted in transit.** Two profiles were found damaged this way (2026-06-01 and 2026-07-28); one had `word/document.xml` destroyed and was unrecoverable, because a stored .docx keeps only a single Drive revision. A native Doc has no zip to corrupt and real revision history.
+- **Contact Log appends become one `documents batchUpdate` call**, instead of download → python-docx edit → re-upload to the same file ID.
+- **Links open in the browser.** A `drive.google.com/file/d/<id>/view` link on a stored .docx triggers a download instead.
+
+Tradeoff: Google Docs substitutes the exact A+A faces (`Public Sans Black`/`ExtraLight`). Acceptable for an internal CRM record. Keep .docx for external deliverables.
+
+- File name: `Lastname, Firstname_[Category]` (no extension on the Google Doc)
   - Parse name from field 1. If only one name known, use what's available.
   - **Category** must be one of: `individual donor`, `professional`, `corporate donor`, `client`, `institutional donor`
   - If the user provided the category in their message, use it. If not, ask before generating:
@@ -188,6 +196,39 @@ Produce a `.docx` file (Google Docs–compatible) using the `docx` npm library.
 - `WidthType.DXA` only — never `WidthType.PERCENTAGE` (breaks in Google Docs)
 - `ShadingType.CLEAR` — never `SOLID`
 - Validate after creation: `python scripts/office/validate.py`
+
+---
+
+## Storing the profile in Drive
+
+Upload as a **native Google Doc**, into the CRM profiles folder `1aaj3JQ372IYMh7pRmNY5B5tSeKU_dGDS`.
+
+That folder is a **Shared Drive**, so every call must pass `supportsAllDrives`. Omitting it returns `404 File not found: <valid ID>`, which reads like a bad ID or a broken upload and has caused real misdiagnosis.
+
+Two-step conversion, verified working and cheap (no base64 through a tool call):
+
+```bash
+# 1. upload the .docx as a temp file
+gws drive files create --params '{"supportsAllDrives":true}' \
+  --json '{"name":"__tmp_src","parents":["1aaj3JQ372IYMh7pRmNY5B5tSeKU_dGDS"]}' \
+  --upload "Lastname, Firstname_category.docx" \
+  --upload-content-type "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+# 2. copy it to a native Google Doc, then trash the temp
+gws drive files copy --params '{"fileId":"TMP_ID","supportsAllDrives":true}' \
+  --json '{"name":"Lastname, Firstname_category","mimeType":"application/vnd.google-apps.document","parents":["1aaj3JQ372IYMh7pRmNY5B5tSeKU_dGDS"]}'
+gws drive files update --params '{"fileId":"TMP_ID","supportsAllDrives":true}' --json '{"trashed":true}'
+```
+
+Conversion preserves the profile table, the five-column Contact Log, and `ExternalHyperlink` links. MCP `Google_Drive__create_file` with `base64Content` and conversion left on also works, but costs several thousand tokens of inlined base64 — prefer the gws path.
+
+**Verify before reporting done.** Export the new Doc back to .docx and confirm it opens, both tables are present with the expected dimensions, and hyperlinks survived:
+
+```bash
+gws drive files export --params '{"fileId":"NEW_ID","mimeType":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","supportsAllDrives":true}' -o check.docx
+```
+
+**Updating an existing profile:** edit the Google Doc in place with `gws docs documents batchUpdate`. Never replace a profile with a new file when one already exists — that duplicates the record. If an existing profile turns out to be corrupt and unrecoverable, say so and ask before rebuilding.
 
 ---
 
@@ -413,7 +454,7 @@ _(Rules are appended here automatically as the user defines them during sessions
 - Always ask for the person's pronouns before generating the document. Include them in the Pronouns field.
 - Never list A+A or Architecture + Advocacy under Organization Name — that field is for paid jobs only. Exception: if the user explicitly states the person is paid by A+A. Instead, capture their A+A role under "Relationship to Anyone in A+A" or "How did they find A+A?"
 - Always add a "Last Updated" row immediately after Pronouns in the profile table. Populate it with today's date (the date the document is being created).
-- Contact Log table has four columns: Date (1200 DXA), Format (1700 DXA), Name (1700 DXA), Description / Notes (4760 DXA). The Name column contains who the profile subject met with — default is "Erin" unless stated otherwise.
+- Contact Log table has **five** columns — see "Table structure" above for the authoritative widths (Date 1100, Format 1500, Name 1500, Description / Notes 3560, Notes Link 1700; sum 9360 DXA). The Name column contains who the profile subject met with — default is "Erin" unless stated otherwise. **If you open an existing profile whose log has only four columns, add the fifth ("Notes Link") rather than working around its absence** — older files predate the current template.
 - When the user says to specify a person's title or role more precisely, update the Organization Title field in the document accordingly.
 - Add an "A+A Point Person" row immediately below LinkedIn URL in the profile table. Default value is "Erin" unless stated otherwise.
 - When asking for pronouns, include a direct link to the best public URL where the person's photo can be found, and invite the user to download it and drop it into chat for embedding.
