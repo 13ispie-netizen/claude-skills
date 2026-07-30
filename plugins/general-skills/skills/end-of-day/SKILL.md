@@ -21,9 +21,32 @@ Pull today's calendar events from all four A+A calendars:
 Then check these two sources for today's transcripts or notes and match them to calendar events by title or time:
 
 - **Fathom** (`mcp__c03aadc8...list_meetings`) — Fathom sometimes processes recordings the following day; if a meeting isn't found, search by title with a 2-day window. Read the **summary** (`get_meeting_summary`), not the full transcript, unless a detail is missing.
-- **Cowork Playground** — the local vault at `/Users/erin/Documents/Cowork Playground/`, the ONLY local folder to search. List files modified today (`find . -newermt "<today> 00:00" -type f`) and report the filenames; open one only if it's actually a meeting note. These files are often RAW two-speaker transcripts (`[Said]`/`[Heard]` lines duplicated, thousands of lines, 40k+ tokens) — never read one whole. Grep for the specific section you need.
+- **Cowork Playground** — the local vault at `/Users/erin/Documents/Cowork Playground/`, the ONLY local folder to search. List files modified today and report the filenames:
+
+  ```bash
+  cd "/Users/erin/Documents/Cowork Playground" && find . -newermt "$(date +%Y-%m-%d) 00:00" -type f -not -path "*/.*"
+  ```
+
+**Do not open any transcript found there yet.** These are RAW dual-channel exports — thousands of lines, ~72k tokens each. Slim every one first (see below).
 
 If a note already exists in the Playground for a meeting, flag it: another automation may have put it there, and Phase 2 could duplicate it. Ask whether to write alongside it or replace it.
+
+### Slim every transcript before reading it
+
+**Mandatory. No exceptions.** For each transcript found in the Cowork Playground, run the **slim-transcript** skill before anything reads the file:
+
+```bash
+python3 <slim-transcript skill dir>/slim_transcript.py "<transcript path>"
+```
+
+This writes `<name>_slim.md` beside the original and leaves the original untouched. Cuts a 46-minute call from ~72k tokens to ~28k. **From this point on, the slim file is the transcript** — Phase 2's meeting notes, Phase 3's CRM extraction, and Phase 5's to-do extraction all read the slim file. Never read the raw original; `grep` it only to recover a specific quote.
+
+Two outputs of that run must be acted on, not skimmed past:
+
+- **Proper-noun audit.** It lists names present in the original but missing from the slim file. Anything substantive means real content was lost — grep the original and restore it by hand before writing notes.
+- **Attribution warning.** If it reports every speaker label is `Unknown`, the transcript cannot tell you who said what. Take attendees from the calendar invite, never assign action-item ownership from the transcript, and confirm owners with Erin in Phase 5.
+
+Delete the `_slim.md` files at the end of the run, or ask — don't leave near-duplicates in the HQ.
 
 Present a numbered list of confirmed meetings. For each, note:
 - Meeting title
@@ -36,6 +59,8 @@ Wait for Erin to confirm or correct the list before proceeding.
 ---
 
 ## Phase 2 — Create Meeting Note Docs
+
+**Source material:** for any meeting whose transcript came from the Cowork Playground, work from the **slim file produced in Phase 1** — never the raw original. For Fathom-only meetings, work from the Fathom summary.
 
 For each confirmed meeting with notes, create a `.docx` file using the **docx** skill.
 
@@ -62,7 +87,7 @@ For each confirmed meeting with notes, create a `.docx` file using the **docx** 
 
 **Skip this phase for group meetings and internal A+A meetings.**
 
-For each external 1:1, use the **crm-extractor** skill to pull structured profile data from the meeting transcript (or the Fathom summary if the transcript is unavailable) and update the contact's record.
+For each external 1:1, use the **crm-extractor** skill to pull structured profile data from the **slim transcript** from Phase 1 (or the Fathom summary if no transcript exists) and update the contact's record.
 
 ---
 
@@ -149,6 +174,8 @@ As the final step, mark today's **"End of Day"** marker task **Done** in the **A
 
 - Always check **both Fathom and the Cowork Playground** — notes may live in either place.
 - **Cowork Playground is the only local folder to touch.** Never search elsewhere on Erin's filesystem.
+- **Every Playground transcript gets slimmed before it is read.** Run slim-transcript in Phase 1; all later phases read the slim file. Reading a raw dual-channel export costs ~72k tokens and is never justified.
+- **Never infer who said what from an unattributed transcript.** These exports label every speaker `Unknown`. Attendees come from the calendar invite; action-item owners get confirmed with Erin.
 - Never create a doc for a meeting with no notes or transcript.
 - Meeting notes are saved to the HQ matching the meeting's topic, never a standalone Meeting Notes HQ. Always confirm the destination HQ with Erin before saving. Not Google Drive unless Erin explicitly asks.
 - Always ask for the **project relation** when capturing Notion tasks — required every time.
