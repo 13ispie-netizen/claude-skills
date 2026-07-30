@@ -24,8 +24,8 @@ conference's own website — never inventing values.
   - E `Conference or Event Name` — **hyperlink** to the conference website
   - F `Organization` — **hyperlink** to the org website
   - G `Submitted Title`
-  - H `Estimated Cost`
-  - I `Payment to Speaker`
+  - H `Conference Location`
+  - I `Estimated Cost/revenue`
   - J `A+A Speakers`
   - K `Google Drive Folder`
   - L `Quick Description`
@@ -37,6 +37,8 @@ conference's own website — never inventing values.
   - R `Important Reporting Dates`
   - S `Prioirty (1-5)`
   - T `Funds Recieved?`
+- **There is no longer a `Payment to Speaker` column.** It was merged into
+  `Estimated Cost/revenue` (I) on July 30, 2026 — one signed column, see below.
 - **Verify the header row before every run** (`A1:T1`). Columns get added — the letters above are
   a snapshot, not a guarantee. Map values by header NAME, not by position, and re-read the header
   again after any write if Erin edits the sheet mid-task.
@@ -53,7 +55,7 @@ conference's own website — never inventing values.
 ### Status (A)
 `Pending` for a submitted-but-undecided application. `Awarded` / `Lost` only when Erin says so.
 
-### Dates (B, C, P, Q, R)
+### Dates (B, C, D, Q, R)
 - `Due Date` = the application deadline. The application doc filename often encodes it as
   `YYMMDD_` — confirm rather than assume.
 - `Conference Date` = format as `MM/DD - MM/DD/YYYY` for multi-day, `MM/DD/YY` for single-day.
@@ -61,6 +63,10 @@ conference's own website — never inventing values.
   not published**. Check the conference site AND the application form itself — Google Forms often
   state the notification date when the website doesn't. If the form is sign-in restricted
   (`FAIpQLS` links return 401 to any fetch), ask Erin what it says rather than estimating.
+- **Month-only dates: write them as text.** If a conference publishes only "November 2026" for
+  notification, `USER_ENTERED` coerces that to `11/1/26` — a day nobody published. Write the
+  month as a text string with `valueInputOption: RAW` instead, and read it back to confirm it
+  didn't get coerced.
 
 ### Conference Name (E) + Organization (F) — hyperlinked
 Write both as live hyperlink formulas with `valueInputOption: USER_ENTERED`:
@@ -71,11 +77,23 @@ Write both as live hyperlink formulas with `valueInputOption: USER_ENTERED`:
 ### Submitted Title (G)
 The **exact** session/proposal title as submitted. Verbatim from the application doc.
 
-### Estimated Cost (H) — a LIVE FORMULA, never a typed number
-Column H is a self-calculating column. **Write the formula, not a computed dollar amount** — it
-recalculates when the speaker list or conference dates change.
+### Conference Location (H)
+City and state/country of the conference, in the conference's own framing
+(`Philadelphia, PA`, `Bozeman, Montana`). Blank if the venue isn't announced yet.
 
-The math it implements:
+Location is also the sanity check on the cost formula below — the formula assumes airfare, so a
+conference within driving or train distance of the speakers means the number is too high. Flag it.
+
+### Estimated Cost/revenue (I) — a SIGNED, LIVE FORMULA, never a typed number
+One signed column carries both directions (it absorbed the old `Payment to Speaker` column):
+
+- **Unpaid opportunity (almost always):** the cost formula, **negative** — money A+A spends.
+- **Conference pays the speaker:** that honorarium as a **positive** number, typed in directly.
+  Only when the opportunity explicitly states speakers are paid.
+
+Never leave it blank, and never write an unsigned cost — a positive value means A+A gets paid.
+
+The math the formula implements (then negates):
 ```
 Estimated Cost = ($500 x presenters)            <- air travel, per presenter
                + ($100 x presenters x days)     <- per diem, per person per day
@@ -86,22 +104,25 @@ Estimated Cost = ($500 x presenters)            <- air travel, per presenter
 - The room is billed for **days + 1** nights (arrive the night before), one room total — not one
   room per presenter.
 
-Paste this into H for the new row (adjust the row number), with
-`valueInputOption: USER_ENTERED`:
+Paste this into I for the new row (adjust the row number), with
+`valueInputOption: USER_ENTERED`. Note the leading `-` on the result:
 ```
-=IFERROR(LET(d,TRIM(D2),n,IF(TRIM(J2)="",0,COUNTA(SPLIT(J2,","))),e,IF(ISNUMBER(SEARCH("-",d)),TRIM(REGEXEXTRACT(d,"-\s*(.+)$")),d),s,IF(ISNUMBER(SEARCH("-",d)),TRIM(REGEXEXTRACT(d,"^([^-]+)")),d),y,REGEXEXTRACT(e,"(\d{2,4})$"),sf,IF(REGEXMATCH(s,"^\d+[/-]\d+[/-]\d+$"),s,s&"/"&y),days,DATEVALUE(e)-DATEVALUE(sf)+1,IF(OR(d="",n=0),"",n*500+n*100*days+300*(days+1))),"")
+=IFERROR(LET(d,TRIM(D2),n,IF(TRIM(J2)="",0,COUNTA(SPLIT(J2,","))),e,IF(ISNUMBER(SEARCH("-",d)),TRIM(REGEXEXTRACT(d,"-\s*(.+)$")),d),s,IF(ISNUMBER(SEARCH("-",d)),TRIM(REGEXEXTRACT(d,"^([^-]+)")),d),y,REGEXEXTRACT(e,"(\d{2,4})$"),sf,IF(REGEXMATCH(s,"^\d+[/-]\d+[/-]\d+$"),s,s&"/"&y),days,DATEVALUE(e)-DATEVALUE(sf)+1,IF(OR(d="",n=0),"",-(n*500+n*100*days+300*(days+1)))),"")
 ```
 
 It handles `10/02 - 10/03/2026`, `11/1/26 - 11/3/26` (start date missing its year), and single
 dates like `05/27/26`. Blank date or blank speakers returns blank; junk in the date column
 (e.g. a conference name) falls through to blank rather than `#VALUE!`.
 
-Format the cell as currency (`$#,##0`) after writing, or the result shows as a bare `1200`:
+Format the cell as currency (`$#,##0`) after writing, or the result shows as a bare `-1200`:
 ```
-{"repeatCell":{"range":{"sheetId":0,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":7,"endColumnIndex":8},
+{"repeatCell":{"range":{"sheetId":0,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":8,"endColumnIndex":9},
  "cell":{"userEnteredFormat":{"numberFormat":{"type":"CURRENCY","pattern":"$#,##0"}}},
  "fields":"userEnteredFormat.numberFormat"}}
 ```
+Use the plain `$#,##0` pattern — it renders negatives as `-$4,200`. **Do not add red or
+parenthesis negative formatting** unless Erin asks; it isn't the column's convention.
+
 If `repeatCell` silently doesn't take on a cell, use `updateCells` with the same range and
 `fields: "userEnteredFormat.numberFormat"` — that works where repeatCell occasionally won't.
 
@@ -109,11 +130,11 @@ Notes:
 - Sanity-check the result. `"Erin, Bee, etc."` in column J counts as **3** presenters — flag
   junk entries rather than trusting the number.
 - If Erin gives real numbers (an actual flight quote, a comped room, a local event with no
-  airfare), hardcode hers instead and tell her you replaced the formula on that row.
-
-### Payment to Speaker (I)
-**`$0` unless the opportunity explicitly says speakers are paid.** Do not leave blank — $0 is the
-real answer for almost every conference A+A applies to.
+  airfare), hardcode hers instead and tell her you replaced the formula on that row. Keep the
+  sign convention when you do.
+- **Rows predating July 30, 2026 still hold unsigned positive costs** (e.g. ACD49 `$1,600`,
+  ACSA113 `$2,800`), so the column mixes conventions and won't sum meaningfully yet. Don't
+  silently rewrite those historical rows; offer to flip them and let Erin decide.
 
 ### A+A Speakers (J) + A+A Point Person (P)
 - Speakers = first names of everyone presenting, comma-separated (`Erin, Abri`), taken from the
@@ -154,18 +175,24 @@ landscape architects, allied practitioners/students").
 4. Insert a blank row at the top (`insertDimension`, `startIndex: 1`, `endIndex: 2`,
    `inheritFromBefore: false`).
 5. Write the full row into row 2 with `valueInputOption: USER_ENTERED` so the hyperlinks and the
-   Estimated Cost formula resolve. Apply currency formatting to the Estimated Cost cell.
+   Estimated Cost/revenue formula resolve. Apply currency formatting to that cell.
 6. **Read row 2 back and verify** — confirm each value landed under the header it belongs to, that
-   no value was truncated or shifted, and that Estimated Cost computed a sane number rather than
-   blank or `#VALUE!`.
+   no value was truncated or shifted, and that Estimated Cost/revenue computed a sane number with
+   the **right sign** rather than blank or `#VALUE!`.
 7. Reply to Erin with a short table of what was filled, an explicit list of what was left blank
    and why, and **always include the clickable link back to the sheet.**
 
 ## Watch-outs
 
-- **Column drift mid-task.** If Erin adds a column while you're working, everything to its right
-  shifts and your earlier writes are now in the wrong cells. Re-read the header and re-verify
-  every cell you wrote before declaring done.
+- **Column drift mid-task.** Erin edits the sheet's structure while you work — she has both added
+  a column (`Conference Location`) and merged two away (`Payment to Speaker`) mid-task. Everything
+  to the right shifts. Re-read the header (`A1:V1`) and re-verify every cell you wrote before
+  declaring done.
+  - Sheets **moves existing cells with the insert/delete and auto-retargets formula references**,
+    so the cost formula keeps working — but read it back with
+    `valueRenderOption: FORMULA` to confirm it now points at the new speaker column, not a
+    stale one.
+  - Number formatting follows the cell too, but re-check it rather than assuming.
 - **Commas survive fine, but verify anyway.** Read the row back after writing; a value like
   `Erin, Abri` landing as `Erin,` means something went wrong upstream.
 
@@ -174,10 +201,17 @@ landscape architects, allied practitioners/students").
 Use the `gws` CLI (installed and authed). It prints a `Using keyring backend:` line to stderr —
 pipe through `tail -n +2` or `grep -v 'keyring backend'` when parsing JSON.
 
-Read the header:
+Read the header (go past T so a newly added column shows up):
 ```
 gws sheets +read --spreadsheet 1jXtPAZmpNpPwUTeU_nwbsPhz833uFFT93Pm74o4uflg \
-  --range 'CURRENT!A1:T1' --format csv 2>/dev/null | grep -v 'keyring backend'
+  --range 'CURRENT!A1:V1' --format csv 2>/dev/null | grep -v 'keyring backend'
+```
+
+Read a formula back to confirm its references after a column shift:
+```
+gws sheets spreadsheets values get \
+  --params '{"spreadsheetId":"1jXtPAZmpNpPwUTeU_nwbsPhz833uFFT93Pm74o4uflg","range":"CURRENT!I2","valueRenderOption":"FORMULA"}' \
+  2>/dev/null | grep -v 'keyring backend'
 ```
 
 Read an application Google Doc (note: `--params`, not `--document-id`):
