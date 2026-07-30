@@ -1,110 +1,238 @@
 ---
 name: sync-newsletter-contacts
-description: Push new contacts from the "Mailing List (Peripheral Supporters)" Google Sheet into Squarespace as marketing contacts. Run this before sending a newsletter to make sure recently-added people will receive it. Use when the user says things like "sync my contacts", "upload new contacts to Squarespace", or "add new people before the newsletter".
+description: Before a newsletter, pull new people out of the "'@@new" Google Contacts group onto the bottom of the "Mailing List (Peripheral Supporters)" Google Sheet, then push all unsynced sheet rows into Squarespace as marketing contacts. Use when the user says things like "sync my contacts", "upload new contacts to Squarespace", "add new people before the newsletter", or "pull my new contacts onto the mailing list".
 ---
 
-# Sync newsletter contacts → Squarespace
+# Sync newsletter contacts → sheet → Squarespace
 
-Adds **only new rows** from the contacts Google Sheet into Squarespace as marketing-opted-in
-contacts, so they're included when the user sends to "everyone who accepts marketing." Tracks
-what's already been synced using a `Synced` column in the sheet, so it never double-adds.
+Two phases, run back to back:
 
-All actions go through the **Zapier MCP** (Google Sheets + Squarespace Commerce are already
-connected). No other credentials needed.
+- **Phase A — Contacts → Sheet.** Read the `'@@new` Google Contacts group (the review queue the
+  "Auto-tag New Contacts" routine fills), drop anyone already on the sheet, and append the rest to
+  the bottom of the mailing-list sheet with `Synced` left blank.
+- **Phase B — Sheet → Squarespace.** Push every row with a blank `Synced` (the Phase A additions
+  plus anything Erin typed in by hand) into Squarespace as a marketing-opted-in contact, then mark
+  those rows `yes`.
 
-## Fixed facts about the sheet
+At the end, **remind Erin to remove the added people from `'@@new` by hand.** This skill never
+writes to Google Contacts — Contacts access is strictly read-only.
 
+## Fixed facts
+
+**Google Contacts**
+- Source group: **`'@@new`** = `contactGroups/441b27ff0d2a083f` (47 members as of 2026-07-30).
+- Read-only. Do not add, edit, remove, or un-group anything in Google Contacts.
+
+**The sheet**
 - **Spreadsheet ID:** `1yoUxdOqCVKhNRa_TECL5CKrj7l7sl-oQ4POBVAyNDTQ`
 - **Tab (worksheet) title:** `Mailing List (Peripheral Supporters)` (sheetId/gid `1983332372`)
-- **Header is on row 2, not row 1.** Row 1 is a spacer (`do not copy this row`). Data starts
-  on **row 3**.
+- **Header is on row 2, not row 1.** Row 1 is a spacer (`do not copy this row` in col J). Data
+  starts on **row 3**. Data currently ends around row 954 (~951 emails).
 - **Columns:** A `email` · B `First name` · C `Last name` · D `Company` · E `Job Title` ·
   F `Pronouns` · G `Location` · H `Category` · I `A+A Point Person` ·
   **J `Synced`** (the tracking column this skill manages)
-- **Verify the layout before every run.** Columns have been inserted before (the Synced column
-  moved from G → J, and more may be added). Read `A1:L8` first, confirm which column header is
-  `Synced`, and use THAT column throughout — never blindly write to a fixed letter, or you may
-  clobber real data (e.g. Location).
-- **Synced rows are marked `yes`** (not a date). Match that convention when marking new rows.
-- Only email + first/last name transfer to Squarespace. Everything else (Company, Job Title,
-  Pronouns, Location, Category, Point Person) does **not** — Squarespace's Create Contact has no
-  field for them. The sheet stays the master record.
+- **Verify the layout before every run.** Columns have been inserted before (`Synced` moved
+  G → J). Read `A1:L8` first, confirm which column header is `Synced`, and use THAT column
+  throughout — never blindly write to a fixed letter, or you may clobber real data.
+- **Synced rows are marked `yes`** (not a date). Match that convention.
+- Only email + first/last name transfer to Squarespace. Company, Job Title, Pronouns, Location,
+  Category, Point Person do **not** — Squarespace's Create Contact has no field for them. The
+  sheet stays the master record for segmentation.
+
+## Access paths
+
+Two ways in. Pick by environment:
+
+- **Claude Code / any terminal (preferred, faster):** the `gws` CLI for both Contacts and Sheets.
+  Note `gws` prints a `Using keyring backend: keyring` line to stdout — strip it (`grep -v keyring`)
+  before piping into a JSON parser.
+- **Chat / Cowork (no terminal):** **Zapier MCP** raw requests (Google Sheets + Squarespace
+  Commerce are connected), or the Google connectors.
+
+Squarespace has **no** `gws` equivalent — Phase B always goes through Zapier MCP.
 
 ### API quirks (learned; follow these to avoid failures)
 
-- Use the **raw Sheets API** via Zapier action `_zap_raw_request` on `selected_api`
-  `GoogleSheetsV2CLIAPI` (read = `execute_zapier_read_action`, write = `execute_zapier_write_action`).
-- `fail_on_errors` **must be passed as the string `"true"`** (not boolean), or the tool stalls
-  asking for it.
+- Zapier Sheets: use `_zap_raw_request` on `selected_api` `GoogleSheetsV2CLIAPI`
+  (read = `execute_zapier_read_action`, write = `execute_zapier_write_action`).
+- `fail_on_errors` **must be passed as the string `"true"`** (not boolean), or the tool stalls.
 - In request **URLs**, the tab title must be URL-encoded and single-quoted:
   `%27Mailing%20List%20%28Peripheral%20Supporters%29%27` then `%21` for `!`.
   In JSON **bodies**, use the plain quoted form: `'Mailing List (Peripheral Supporters)'!A1`.
 - For Squarespace `create_contact` (`selected_api` `SquarespaceCLIAPI`), pass
-  `acceptsMarketing: true` and tell the action to execute without asking follow-ups (it
-  sometimes asks to confirm the marketing flag — just re-run with the same params).
-- **Keep `instructions` and `output` text neutral and factual** for `create_contact`. Do NOT
-  use words like "error", "reject", "fail", or "placeholder" in them — this connector is
-  LLM-mediated and will sometimes *echo such wording back as a fake result* instead of calling
-  the API. Describe only the successful action you want.
+  `acceptsMarketing: true` and tell the action to execute without asking follow-ups.
+- **Keep `instructions` and `output` text neutral and factual** for `create_contact`. Do NOT use
+  words like "error", "reject", "fail", or "placeholder" — this connector is LLM-mediated and will
+  sometimes *echo such wording back as a fake result* instead of calling the API. Describe only
+  the successful action you want.
 - The `.` (single period) last-name placeholder **is accepted** by Squarespace (verified).
-- A genuine duplicate returns a tool **error** whose message contains `already exists`. That is
-  a SUCCESS case (the person is already in Squarespace) — count it as synced and mark the row.
+- A genuine duplicate returns a tool **error** whose message contains `already exists`. That is a
+  SUCCESS case — count it as synced and mark the row.
+- Google People `people:batchGet` caps at 200 resource names per call; chunk at 50.
 
-## Steps
+---
 
-### 1. Read the sheet
-First confirm the layout with a small GET to `…!A1%3AL8` and check which column header is
-`Synced` (currently J). Then read all data rows (from **row 3**) through the Synced column with
-a raw GET, e.g.:
+### 0. Confirm the sheet layout (always, before anything else)
+
+Read `A1:L8` and confirm which column header is `Synced`. Use that column for the rest of the run.
+Columns have been inserted into this sheet before.
+
+```bash
+gws sheets spreadsheets values get --params '{"spreadsheetId":"1yoUxdOqCVKhNRa_TECL5CKrj7l7sl-oQ4POBVAyNDTQ","range":"'"'"'Mailing List (Peripheral Supporters)'"'"'!A1:L8"}'
 ```
-https://sheets.googleapis.com/v4/spreadsheets/1yoUxdOqCVKhNRa_TECL5CKrj7l7sl-oQ4POBVAyNDTQ/values/%27Mailing%20List%20%28Peripheral%20Supporters%29%27%21A3%3AJ5000
-```
-Each returned row maps to **actual sheet row = array index + 3** (rows 1–2 are spacer + header).
-Note: trailing empty cells are trimmed, so a row may come back shorter than the full column count.
-The full range often exceeds the tool's token cap and gets saved to a file — parse it with a
-script rather than reading it inline.
 
-### 2. Find the new rows
-A row is **to-add** when BOTH:
-- Column A (`email`) is present and looks like an email (contains `@`), AND
+# Phase A — pull `'@@new` onto the sheet
+
+### 1. Read the `'@@new` group members
+
+```bash
+gws people contactGroups get \
+  --params '{"resourceName":"contactGroups/441b27ff0d2a083f","maxMembers":500}'
+```
+Returns `memberCount` and `memberResourceNames` (`people/c…`).
+
+Then hydrate them in chunks of 50:
+```bash
+gws people people getBatchGet --params '{"resourceNames":["people/c…","people/c…"],
+  "personFields":"names,emailAddresses,organizations,addresses,memberships,biographies"}'
+```
+
+Zapier equivalent — raw GET on `selected_api` `GoogleContactsCLIAPI` (or any raw-request action
+that reaches Google):
+`https://people.googleapis.com/v1/contactGroups/441b27ff0d2a083f?maxMembers=500`
+then `https://people.googleapis.com/v1/people:batchGet?resourceNames=…&resourceNames=…&personFields=names,emailAddresses,organizations,addresses,memberships,biographies`
+
+### 2. Map each contact to a sheet row
+
+| Sheet column | Source on the Google Contact |
+|---|---|
+| A `email` | primary `emailAddresses[].value` (the one with `metadata.primary: true`, else the first) |
+| B `First name` | `names[0].givenName`; if blank, the part of the email before `@` |
+| C `Last name` | `names[0].familyName`; leave blank if absent (Phase B substitutes a placeholder) |
+| D `Company` | `organizations[0].name` |
+| E `Job Title` | `organizations[0].title` (append `, <department>` only if the title alone is meaningless) |
+| F `Pronouns` | parse a `Pronouns: …` line out of `biographies[0].value` — the auto-tagger stores them there. Blank if absent. |
+| G `Location` | from `addresses[0]`: `City, ST` (`city` + `region`). Blank if there's no address — do not guess from the org. |
+| H `Category` | map from the contact's category group membership (table below). Blank if none matches. |
+| I `A+A Point Person` | always **`Erin`** |
+| J `Synced` | **leave blank** — Phase B fills it |
+
+**Category group → sheet Category value.** The sheet's taxonomy is narrower than the Contacts
+groups, and column H is mostly blank today (only ~16 of 951 rows filled), so a blank is completely
+normal. Never invent a value.
+
+| Google Contacts group | Sheet `Category` |
+|---|---|
+| AEC Firm (`56b866188a20d8b7`) | `AEC` |
+| Community-Based Non-Profit (`12a592488880e312`) | `Community-Based Nonprofit` |
+| Non-profit: other (`1d87800c8f4021ff`) | `Institutional Nonprofit` |
+| Gov't (`5e1e6c01098dcb01`), Developer (`406ebafe0fce041f`), Foundation (`944616a8c6072b2`), family foundation (`53b811ba0f8d272d`), Event Venue (`25ba767509d554a2`), Real-Estate PR (`6c58a71d8919a864`) | `Other` |
+| no category group at all | *(blank)* |
+
+Ignore the `'@Level 1–4`, roster, event, and campaign groups — they carry no Category meaning.
+(`Student/Volunteer` exists in the sheet but has no Contacts-group equivalent; leave blank rather
+than guessing.)
+
+**Skip and report separately:** any `'@@new` member with **no email address** — there's nothing to
+put on a mailing list. Do not fabricate one.
+
+### 3. Dedupe against the sheet
+
+Read the existing sheet emails:
+```bash
+gws sheets spreadsheets values get --params '{"spreadsheetId":"1yoUxdOqCVKhNRa_TECL5CKrj7l7sl-oQ4POBVAyNDTQ","range":"'"'"'Mailing List (Peripheral Supporters)'"'"'!A3:J5000"}'
+```
+Compare **case-insensitively and trimmed** — the sheet contains trailing-space emails
+(`"glh2116@columbia.edu "`) and ~9 duplicate addresses already. Drop any `'@@new` contact whose
+email already appears anywhere in column A, whether that row is synced or not. Also dedupe within
+the `'@@new` batch itself.
+
+### 4. Append the new rows
+
+Per Erin's instruction, **add all of them automatically** — no per-contact confirmation. Append to
+the bottom in ONE call:
+
+```bash
+gws sheets spreadsheets values append \
+  --params '{"spreadsheetId":"1yoUxdOqCVKhNRa_TECL5CKrj7l7sl-oQ4POBVAyNDTQ","range":"'"'"'Mailing List (Peripheral Supporters)'"'"'!A3","valueInputOption":"USER_ENTERED","insertDataOption":"INSERT_ROWS"}' \
+  --json '{"values":[["email","First","Last","Company","Job Title","Pronouns","Location","Category","Erin",""]]}'
+```
+Zapier equivalent: POST
+`…/values/%27Mailing%20List%20%28Peripheral%20Supporters%29%27%21A3:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`.
+
+Send **exactly 10 cells per row** (A–J, empty string for blanks) so nothing lands in the wrong
+column. Then confirm from the response's `updates.updatedRange` which rows were written, and carry
+those row numbers into Phase B. If `Synced` is not column J on this run, reorder the cells to match
+the layout you confirmed in step 0.
+
+Tell Erin how many were appended and at which rows, then continue straight into Phase B.
+
+---
+
+# Phase B — push the sheet into Squarespace
+
+### 5. Re-read the sheet and find the unsynced rows
+
+Read `A3:J5000` again (post-append). A row is **to-add** when BOTH:
+- Column A (`email`) is present and contains `@`, AND
 - The `Synced` column (currently J, index 9) is blank.
 
-Skip rows whose column A is not an email (e.g. stray first-name-only rows) and rows already
-marked `yes` / `pre-existing` / dated.
+Each returned row maps to **actual sheet row = array index + 3**. Trailing empty cells are trimmed,
+so a row may come back shorter than 10 fields — treat a missing index 9 as blank. Skip rows whose
+column A isn't an email, and rows already marked `yes` / `pre-existing` / dated. The full range
+often exceeds the tool's token cap and gets saved to a file — parse it with a script, not inline.
 
-### 3. Show the user and confirm
-List the to-add contacts (email + name) and how many there are. **Wait for confirmation**
-before writing anything to Squarespace. If none, report "nothing new to sync" and stop.
+This set = the Phase A additions **+** anything Erin added by hand since the last run.
 
-### 4. Create each contact in Squarespace
+### 6. Show the user and confirm
+
+List the to-add contacts (email + name) and how many, flagging which came from `'@@new` this run
+versus which were already sitting unsynced. **Wait for confirmation** before writing anything to
+Squarespace. If none, report "nothing new to sync" and skip to step 9.
+
+### 7. Create each contact in Squarespace
+
 For each confirmed row, call `create_contact` (`SquarespaceCLIAPI`) with:
-- `email` = column A
+- `email` = column A (trimmed)
 - `firstName` = column B, or if blank, the part of the email before `@`
-- `lastName` = column C, or if blank, `.` (placeholder — Squarespace requires a last name)
+- `lastName` = column C, or if blank, `.`
 - `locale` = `en-US`
 - `acceptsMarketing` = `true`
 
-Treat an "already exists" response as **success** (they're already in Squarespace).
-Track the sheet row number of every success.
+Treat an "already exists" response as **success**. Track the sheet row number of every success.
+The same email can appear on more than one row — create the contact once, but mark **every**
+matching row synced.
 
-### 5. Mark synced rows
-Write `yes` into the `Synced` column (currently J) for every successful row, in ONE batched
-write to `values:batchUpdate` (method POST, `fail_on_errors` `"true"`):
+### 8. Mark synced rows
+
+Write `yes` into the `Synced` column for every successful row, in ONE batched write to
+`values:batchUpdate` (POST, `fail_on_errors` `"true"`):
 ```json
 {"valueInputOption":"USER_ENTERED",
  "data":[{"range":"'Mailing List (Peripheral Supporters)'!J<row>","values":[["yes"]]}, ...]}
 ```
-(Use whichever column the step-1 check confirmed is `Synced`, and match the existing marker —
-`yes` today.)
+Use whichever column step 0 confirmed is `Synced`, and match the existing `yes` marker.
 
-### 6. Report
-Summarize: N contacts added, N already-present, and any errors (with the offending email).
-Remind the user the new people will be included next time they send to marketing contacts.
+### 9. Report — and hand back the `'@@new` cleanup
+
+Summarize:
+1. **Pulled from `'@@new`:** N appended to the sheet (rows X–Y), N skipped as already on the sheet,
+   N skipped for having no email address.
+2. **Squarespace:** N contacts added, N already present, and any errors with the offending email.
+3. **⚠ Manual step for Erin — remove these people from `'@@new`.** This skill does not touch
+   Google Contacts. List each person appended in Phase A as a name hyperlinked to their contact
+   (`https://contacts.google.com/person/<id>`, where `<id>` is the `resourceName` minus the
+   `people/` prefix), and link the group itself so she can clear it in one pass. Say plainly that
+   until she removes them, they'll be re-checked (and correctly skipped as duplicates) on the next
+   run — so nothing breaks if she forgets, the queue just keeps growing.
+
+Then remind her the new people will be included next time she sends to marketing contacts.
 
 ## Notes
-- Safe to re-run anytime; already-synced rows are skipped.
+
+- Safe to re-run anytime. Phase A dedupes on email, Phase B skips already-synced rows.
 - To re-sync someone (or backfill a `pre-existing` row), clear their `Synced` cell first.
-- If Squarespace ever rejects the `.` last-name placeholder, fall back to reusing the first
-  name as the last name.
-- The same email can appear on more than one row. Create the contact once, but mark **every**
-  matching row synced.
+- To re-pull someone from `'@@new`, delete their sheet row (or they'll dedupe out).
+- If Squarespace ever rejects the `.` last-name placeholder, reuse the first name as the last name.
+- Squarespace has no API for targeting a specific named mailing list — Create Contact only adds to
+  the Contacts address book with the marketing opt-in, which is why the sheet holds segmentation.
