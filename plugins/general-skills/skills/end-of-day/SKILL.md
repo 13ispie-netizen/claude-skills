@@ -6,7 +6,7 @@ description: >
 
 # End-of-Day Workflow
 
-Erin's structured close-of-day routine. Run all five phases in order, pausing for confirmation at each phase gate.
+Erin's structured close-of-day routine. Run all six phases in order, pausing for confirmation at each phase gate.
 
 ---
 
@@ -18,7 +18,12 @@ Pull today's calendar events from all four A+A calendars:
 - **Architecture + Advocacy** calendar
 - **Personal** calendar (contains travel and personal appointments that affect work windows)
 
-Also check **Fathom** (`mcp__c03aadc8...list_meetings`) and **Granola** (`mcp__5254d818...list_meetings`) for any meeting transcripts or notes from today — match them to calendar events by title or time. Note: Fathom sometimes processes recordings the following day — if a meeting isn't found, search by title with a 2-day window. Granola full transcripts require a paid tier; if the transcript is unavailable, work from the Granola summary.
+Then check these two sources for today's transcripts or notes and match them to calendar events by title or time:
+
+- **Fathom** (`mcp__c03aadc8...list_meetings`) — Fathom sometimes processes recordings the following day; if a meeting isn't found, search by title with a 2-day window. Read the **summary** (`get_meeting_summary`), not the full transcript, unless a detail is missing.
+- **Cowork Playground** — the local vault at `/Users/erin/Documents/Cowork Playground/`, the ONLY local folder to search. List files modified today (`find . -newermt "<today> 00:00" -type f`) and report the filenames; open one only if it's actually a meeting note. These files are often RAW two-speaker transcripts (`[Said]`/`[Heard]` lines duplicated, thousands of lines, 40k+ tokens) — never read one whole. Grep for the specific section you need.
+
+If a note already exists in the Playground for a meeting, flag it: another automation may have put it there, and Phase 2 could duplicate it. Ask whether to write alongside it or replace it.
 
 Present a numbered list of confirmed meetings. For each, note:
 - Meeting title
@@ -41,7 +46,6 @@ For each confirmed meeting with notes, create a `.docx` file using the **docx** 
 **Doc contents:**
 - Title (H1): meeting name
 - Meta rows (bold label + plain value): Date, Time, Attendees, Meeting Type
-- If Granola notes exist: add a "Granola Notes: [View in Granola]" hyperlink row
 - If Fathom recording(s) exist: add a "Fathom Recording: [View]" hyperlink row for each
 - Horizontal rule divider
 - H2 sections for each topic covered, with bullet points
@@ -58,7 +62,7 @@ For each confirmed meeting with notes, create a `.docx` file using the **docx** 
 
 **Skip this phase for group meetings and internal A+A meetings.**
 
-For each external 1:1, use the **crm-extractor** skill to pull structured profile data from the meeting transcript (or Granola summary if the transcript is unavailable) and update the contact's record.
+For each external 1:1, use the **crm-extractor** skill to pull structured profile data from the meeting transcript (or the Fathom summary if the transcript is unavailable) and update the contact's record.
 
 ---
 
@@ -143,7 +147,8 @@ As the final step, mark today's **"End of Day"** marker task **Done** in the **A
 
 ## Notes + Standing Rules
 
-- Always check **both Fathom and Granola** — notes may live in either tool.
+- Always check **both Fathom and the Cowork Playground** — notes may live in either place.
+- **Cowork Playground is the only local folder to touch.** Never search elsewhere on Erin's filesystem.
 - Never create a doc for a meeting with no notes or transcript.
 - Meeting notes are saved to the HQ matching the meeting's topic, never a standalone Meeting Notes HQ. Always confirm the destination HQ with Erin before saving. Not Google Drive unless Erin explicitly asks.
 - Always ask for the **project relation** when capturing Notion tasks — required every time.
