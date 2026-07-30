@@ -70,6 +70,30 @@ For each external 1:1, use the **thank-you-email** skill to draft a follow-up. P
 
 ---
 
+## Phase 4.5 — Log Meetings to Existing CRM Profile Contact Logs
+
+**Applies to ALL of today's meetings (1:1 and group, internal or external) — not limited to external 1:1s.**
+
+For every meeting today, check each attendee against the **existing** CRM profiles in the profiles Drive folder (`1aaj3JQ372IYMh7pRmNY5B5tSeKU_dGDS`). If an attendee has a profile there, append a row to that profile's **Contact Log** table. **Only update profiles that already exist — never create a new profile in this step.**
+
+**Matching (email first, then name):**
+1. List the .docx files in the profiles folder.
+2. For each meeting attendee, first match the attendee's **email** to the profile's **Email** field (read the profile's contents to get it). If no email match, fall back to matching the attendee **name** to the profile filename (`Lastname, Firstname_Category.docx`).
+3. If neither matches an existing profile, skip that attendee (do not create anything).
+
+**Appending the Contact Log row** (the Contact Log is the last table in the profile; it has five columns — Date, Format, Name, Description / Notes, Notes Link):
+- **Date:** meeting date (MM/DD/YYYY)
+- **Format:** `email`, `phone call`, `in-person meeting`, `zoom meeting`, or `event` (infer from the calendar event; if ambiguous use `meeting`)
+- **Name:** who the profile subject met with — default `Erin`
+- **Description / Notes:** one concise sentence on the meeting's purpose
+- **Notes Link:** a clickable `Notes` hyperlink to the meeting-notes doc created in Phase 2. **If no notes doc exists for that meeting, leave this cell blank.**
+
+**How to edit the .docx (manual run):** download the profile from Drive, open it with **python-docx**, select the last table (the Contact Log), `add_row()`, set the five cell values (add the Notes Link as a real hyperlink), save, and re-upload to Drive **replacing the same file** (same file ID) via the `gws drive files update --upload` flow. Do not create a new file — that would duplicate the profile.
+
+Present a summary of which profiles you updated (and which attendees had no existing profile) before moving on.
+
+---
+
 ## Phase 5 — Capture To-Dos in Notion
 
 **Step 5a — Extract to-dos**

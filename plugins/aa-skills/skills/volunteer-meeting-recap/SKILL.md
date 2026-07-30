@@ -19,11 +19,22 @@ You are drafting a post-meeting email for A+A's volunteer community. The goal is
 
 If a Fathom meeting link or recording ID is not already in context, fetch the most recent meeting using the Fathom MCP tool (`list_meetings` with `include_summary: true`), then pull the full transcript with `get_meeting_transcript`. If the user pastes a transcript directly, use that.
 
-## Step 2: Ask for any missing links (if not provided)
+## Step 2: Get the PUBLIC recording link
 
-Before drafting, check whether the user has provided:
-- A recording link (Fathom share URL)
+**Always link the public share view of the Fathom recording, never the internal one.** Recipients are volunteers and community members without Fathom accounts -- an internal link locks them out.
+
+- Public share links look like `https://fathom.video/share/<token>` (including the `/share/h/`, `/share/i/`, `/share/p/`, `/share/u/` variants).
+- Internal links look like `https://fathom.video/calls/<id>`. **Never put one of these in the email.**
+
+The Fathom MCP tools only return `/calls/` URLs -- they cannot generate a share link. So if Erin hasn't pasted a `/share/` URL, ask her for it: in Fathom, open the recording, click **Share**, enable public/anyone-with-the-link access, and copy that URL.
+
+If a `/calls/` link is all you have, do not silently use it. Draft the email with an obvious placeholder and tell her what's missing.
+
+## Step 2b: Ask for any other missing links
+
+Also check whether the user has provided:
 - A slides link (Canva, Google Slides, etc.)
+- Any collaborative board used in the meeting (Figma, Miro) -- link it if referenced in a highlight
 
 If either is missing, ask. Don't invent them. If the user says to skip one, omit that line from the email.
 
@@ -72,6 +83,8 @@ These matter -- Erin has a specific style and will notice if you deviate.
 **Sentences:** Short. If a sentence runs over 25 words, split it.
 
 **Em-dashes:** Use `--` (double hyphen), not `—`.
+
+**Links:** The recording link must always be a public Fathom `/share/` URL, never a `/calls/` URL.
 
 **Sign-off:** Always `-E`. Never "Best," "Warmly," or "Sincerely."
 
