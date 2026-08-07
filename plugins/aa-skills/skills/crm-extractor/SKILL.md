@@ -232,6 +232,29 @@ gws drive files export --params '{"fileId":"NEW_ID","mimeType":"application/vnd.
 
 ---
 
+## Linking the profile into the person's Google Contact
+
+Whenever you create a profile for the **first time**, paste its link into that person's Google Contact so the CRM record is reachable from the address book. Do this immediately after the profile is stored and verified.
+
+**The only edit you may make to an existing contact is appending the single `CRM profile:` line to its notes.** Never change a name, email, phone, company, job title, address, group membership, or any existing note text. Never delete or rewrite notes — append only.
+
+1. **Find the contact.** Zapier Google Contacts Find Contact, `search_by: "email"`, the profile subject's email. No email on file → search `search_by: "name"` with the full name. Confirm the returned record's email or name actually matches the person; Find Contact returns a nearest match and will happily hand back someone else. No genuine match → skip silently and note it in your output.
+2. **Read current notes and etag.** People API GET `https://people.googleapis.com/v1/people/<ID>?personFields=names,emailAddresses,biographies,metadata`. Keep the `etag` — `updateContact` rejects a write without the current one.
+3. **Idempotency.** If the notes already contain a line starting `CRM profile:`, leave the contact untouched. Do not add a second link, and do not "refresh" an existing one.
+4. **Append one line.** New notes value = existing notes text, then a newline, then exactly:
+
+   ```
+   CRM profile: https://docs.google.com/document/d/<FILE_ID>/edit
+   ```
+
+   Preserve the existing text byte-for-byte above that line, including blank lines. If notes were empty, the link line is the whole value.
+5. **Write it.** PATCH `https://people.googleapis.com/v1/people/<ID>:updateContact?updatePersonFields=biographies`, body `{"etag":"<ETAG>","biographies":[{"value":"<FULL NOTES>","contentType":"TEXT_PLAIN"}]}`. A 400 about the etag means the contact changed under you — re-read and retry once, then give up and report.
+6. **Report it.** Say which contact got a link, and name anyone who was skipped and why (no contact found, ambiguous match, link already present).
+
+Existing profiles get the same treatment when you happen to touch them: if a contact has no `CRM profile:` line and a profile exists for them in `1aaj3JQ372IYMh7pRmNY5B5tSeKU_dGDS`, append it. Match profiles by filename (`Lastname, Firstname_[Category]`) and use the file's `webViewLink`.
+
+---
+
 ## Contact Log
 
 Add a Contact Log table at the bottom of the document, after the profile table. Leave one blank line between them.
