@@ -39,6 +39,29 @@ When asking for pronouns, also include the best public URL where a photo of the 
 
 After extracting from the transcript, search Google and LinkedIn to fill in fields the transcript left blank. Use the person's name plus their organization or title as the search query.
 
+### Conversation-Only Fields (never web-source or infer)
+
+These fields may ONLY come from the transcript or direct conversation with Erin. Never fill them from a web search, LinkedIn, Gmail, or Calendar, and never infer them — leave blank if not explicitly stated:
+- Attitude Towards Current Company
+- Adjectives to describe
+- Sexual Orientation + Openness
+- Religion
+- Outstanding Physical Conditions / Medical History
+
+(Marital Status + Partner Name is NOT on this list — it can be filled from web research like other fields.)
+
+### Media Mentions (News Articles & Podcasts)
+
+For every profile, search for news articles, podcast episodes, panels, or interviews where the person is quoted or speaking. Use queries like `"[Name]" interview`, `"[Name]" podcast`, `"[Name]" news`, and `"[Name]" [Organization]`.
+
+Apply the same Identity Verification standard below before using any result.
+
+- Format each confirmed result as `Outlet/Podcast Name: "Title" | URL`. Separate multiple entries with a semicolon, same convention as Employment History.
+- Render each entry as a clickable hyperlink in the document — link text is the outlet/title, not the raw URL (see Document Generation Scaffold).
+- Mark this field ` [web]` like other web-sourced fields.
+- If no confirmed mentions are found, leave the field blank. Do not include unconfirmed or ambiguous matches.
+- This field applies to every profile going forward, including profiles created before this field existed. When revising an old profile that predates it, add the row and run this search even if nothing else in the profile is being updated.
+
 ### Identity Verification (required before using any web result)
 
 You must be confident the search result is the same person before using any data from it. Confirm by matching at least **two independent identifiers** from the transcript against the search result — e.g., name + org, name + title, name + city. If you cannot confirm two identifiers, do not use that result.
@@ -78,80 +101,99 @@ For each match, add a row to the Contact Log:
 
 Output every field, in this exact order, whether or not it has a value. Blank values are output as empty (nothing after the comma).
 
+**This list and `CRM_Profile_Template.docx` must never drift.** Any add, remove, rename, or reorder here must be made to the template's table in the same edit, and vice versa. After editing either, run:
+```
+python3 "~/claude-skills/plugins/aa-skills/skills/crm-extractor/scripts/check_schema_sync.py"
+```
+Do not consider a schema change done until this reports everything in sync.
+
 ### Basic Background Info
 1. Name, including nickname
 2. Pronouns
 3. Last Updated (date the profile was created or last updated — always populate with today's date)
 4. LinkedIn URL
-4. Prefix
-5. Suffix
-6. Organization Name
-7. Organization Title
-8. Organization main purpose
-9. Email
-10. Phone
-11. Home Address
-12. Preferred Method for Receiving Updates
-13. Birthday
-14. Birthplace
-15. Race/Ethnicity/Nationality
-16. How did they find A+A?
-17. Relationship to Anyone in A+A
-18. Wealth Indicators + Source (salary, company shares, real estate, family inheritance, etc.)
+5. A+A Point Person (default: Erin, unless stated otherwise)
+6. Media Mentions + Links (news articles, podcasts, interviews, etc. where they are quoted or speaking — rendered as clickable hyperlinks; see Web Research and Document Generation Scaffold)
+7. Prefix
+8. Suffix
+9. Organization Name
+10. Organization Title
+11. Organization main purpose
+12. Email
+13. Phone
+14. Home Address
+15. Preferred Method for Receiving Updates
+16. Birthday
+17. Birthplace
+18. Race/Ethnicity/Nationality
+19. How did they find A+A?
+20. Relationship to Anyone in A+A
+21. Wealth Indicators + Source (salary, company shares, real estate, family inheritance, etc.)
 
 ### Personal Life
-17. Hobbies/Passions
-18. Marital Status + Partner Name
-19. Partner's Education, Occupation, Hobbies, etc.
-20. Wedding Anniversary
-21. Sexual Orientation + Openness
-22. Religion
-23. Vacation Habits
-24. Children, if any, names and ages, and occupation/hobbies, etc.
-25. Siblings + Birth Order
-26. Outstanding Physical Conditions, Including medical history
-27. Heritage
-28. Sensitive topics not to be discussed with
-29. Opinions of Drinking, Smoking, Drugs, Etc.
-30. Favorite Food, Lunch + Dinner Spots
-31. Kind of Car(s)
-32. Who are they anxious to impress?
-33. Adjectives to describe
-34. Most Proud Personal Achievements
-35. Short-term personal goals
-36. Long-range personal goals
+22. Hobbies/Passions
+23. Marital Status + Partner Name
+24. Partner's Education, Occupation, Hobbies, etc.
+25. Wedding Anniversary
+26. Sexual Orientation + Openness
+27. Religion
+28. Vacation Habits
+29. Children (names, ages, occupation/hobbies)
+30. Siblings + Birth Order
+31. Outstanding Physical Conditions / Medical History
+32. Heritage
+33. Sensitive Topics Not to Be Discussed
+34. Opinions on Drinking, Smoking, Drugs, Etc.
+35. Favorite Food, Lunch + Dinner Spots
+36. Kind of Car(s)
+37. Who are they anxious to impress?
+38. Adjectives to describe
+39. Most Proud Personal Achievements
+40. Short-term personal goals
+41. Long-range personal goals
 
 ### Professional Life
-37. Employment History (Company, Location, Dates, Title)
-38. Education
-39. Extracurricular College Activities
-40. Military Service + Discharge Rank
-41. Attitude Towards Current Company
-42. Major Business Competitors
-43. Immediate Business Objective
-44. Long-range business objective
-45. Professional or Trade Associations
-46. Mentors
+42. Employment History (Company, Location, Dates, Title)
+43. Education
+44. Extracurricular College Activities
+45. Military Service + Discharge Rank
+46. Attitude Towards Current Company
+47. Major Business Competitors
+48. Immediate Business Objective
+49. Long-range business objective
+50. Professional or Trade Associations
+51. Mentors
 
 ### Giving Background
-47. Process for making donations, including other decision-makers
-48. Current Board Position(s)
-49. Past Board Position(s)
-50. Giving History (A+A + others)
-51. Volunteering
-52. Top advocacy and philanthropic issues
-53. Reasons for supporting A+A
+52. Process for Making Donations (incl. other decision-makers)
+53. Current Board Position(s)
+54. Past Board Position(s)
+55. Giving History (A+A + others)
+56. Volunteering
+57. Top advocacy and philanthropic issues
+58. Reasons for supporting A+A
 
 ---
 
 ## Work History Rules
 
-Field 36 (Employment History) must capture ALL roles mentioned across time:
+Field 42 (Employment History) must capture ALL roles mentioned across time:
 - Format each role as: `Company Name | Title | Location | Dates`
 - If multiple roles exist, separate them with a semicolon: `Role 1; Role 2; Role 3`
 - If org name unknown: `name not recalled | Title | Location | Dates`
 - Missing dates or location: leave that segment blank but keep the delimiters
 - Do NOT drop a role because some details are missing
+
+---
+
+## Completeness Check (required before generating)
+
+Before generating the document, go through all 58 fields in the Field Schema **in order, one by one**. For each field, confirm it is in one of these states:
+- Filled from the transcript
+- Filled from web/Gmail/Calendar research and tagged `[web]` or `[gmail]`
+- Deliberately blank because it was never stated anywhere available
+
+Do not generate the document until every field has been touched this way. A field you haven't consciously checked is not the same as a field that's genuinely blank — if you can't place a field in one of the three states above, go back and research or ask before moving on.
 
 ---
 
@@ -188,6 +230,7 @@ Tradeoff: Google Docs substitutes the exact A+A faces (`Public Sans Black`/`Extr
    - Group rows under section header rows (bold, full-width, dark background `2E4057`, white text) for: Basic Background Info, Personal Life, Professional Life, Giving Background
    - Do NOT include Photo URL as a table row — it is rendered as an image, not text
    - **Always hyperlink the LinkedIn URL and the Organization Name** value cells. Render each as an `ExternalHyperlink` (blue `0563C1`, underlined). For LinkedIn, the link points at the profile URL (display the URL, or "LinkedIn"). For Organization Name, link the company name to the organization's website (use a real, verified URL from research; if no URL is known, leave it as plain text — never invent one). If a value carries a `[web]`/`[gmail]` source tag, keep that tag as plain text after the hyperlink.
+   - **Media Mentions + Links** renders as one or more `ExternalHyperlink`s in the same blue `0563C1`/underlined style, one per confirmed mention — not plain text. See Document Generation Scaffold.
 
 ### docx generation rules (from docx skill)
 - Install: `npm install -g docx`
@@ -292,17 +335,28 @@ Then set the description to the event name (e.g., "ULI 2026 Annual Conference").
 
 ## Progressive Updates
 
+This skill's master copy lives in the `claude-skills` GitHub repo (single source of truth across Claude Code, Cowork, and claude.ai Capabilities). Never edit a cached or installed copy directly — always land changes in the repo master first.
+
 After every interaction, scan the conversation for any clear behavioral rule the user has defined — something they explicitly said to always do, never do, or handle a specific way going forward. These can come as corrections, instructions, or preferences stated mid-conversation.
 
-When you detect one:
-1. Append it to the **User-Defined Rules** section at the bottom of this SKILL.md (copy the file to `/tmp/crm-extractor/` first if it hasn't been already).
-2. Repackage the skill: `python -m scripts.package_skill /tmp/crm-extractor`
-3. Present the `.skill` file immediately using `present_files` — no confirmation prompt.
+When you detect one, first classify it — do not default to appending it at the bottom and moving on:
+
+**A. Structural** — it adds, removes, renames, or reorders a profile field, a Contact Log column, or a document-structure element (it changes what a row/column IS, not just how it gets filled in).
+1. Merge it directly into the Field Schema / Document structure / Contact Log section it affects, in the repo master, renumbering as needed. Do NOT park it in User-Defined Rules — that section is prose at the bottom of the file and structural changes left there get missed later (this happened before: "A+A Point Person" existed only as a User-Defined Rule for months while the canonical Field Schema list never had it).
+2. Update `CRM_Profile_Template.docx` to match in the same pass.
+3. Run `scripts/check_schema_sync.py` (in this skill's folder) and confirm it reports everything in sync.
+4. Commit and push the repo, then rebuild the Claude Code plugin cache.
+5. Copy the file to `/tmp/crm-extractor/` (if not already done), repackage with `python -m scripts.package_skill /tmp/crm-extractor`, and present the `.skill` file via `present_files` for manual re-upload to claude.ai Capabilities — no confirmation prompt.
+
+**B. Behavioral** — it governs how to act (sourcing rules, tone, sequencing, when to ask) without changing the schema itself.
+1. Append it to the **User-Defined Rules** section at the bottom of this SKILL.md, in the repo master (copy the file to `/tmp/crm-extractor/` first if it hasn't been already).
+2. Commit and push the repo, then rebuild the Claude Code plugin cache.
+3. Repackage the skill: `python -m scripts.package_skill /tmp/crm-extractor`
+4. Present the `.skill` file immediately using `present_files` — no confirmation prompt.
 
 Rules should be written as short, imperative statements. Examples:
-- "Always include LinkedIn URL as a separate field after Email."
-- "Never leave Employment History blank if a current org is known."
-- "Format dates as MM/YYYY."
+- Structural: "Add a 'Referral Source' row right after How did they find A+A?" → goes into Field Schema + template, never just a footnote.
+- Behavioral: "Always include LinkedIn URL as a separate field after Email." / "Format dates as MM/YYYY."
 
 ---
 
@@ -369,15 +423,54 @@ function linkedDataRow(field, linkText, url, trailing) {
   ]});
 }
 
+// Parses "Outlet: \"Title\" | https://url ; Outlet2: \"Title2\" | https://url2"
+function parseLinkEntries(value) {
+  return (value || "").split(";").map(s => s.trim()).filter(Boolean).map(entry => {
+    const [label, url] = entry.split("|").map(s => s.trim());
+    return { label: label || url, url };
+  });
+}
+
+// Same layout as dataRow, but renders the value as one or more clickable hyperlinks
+// (blue 0563C1, underlined — same style as linkedDataRow). Use for Media Mentions + Links.
+function mediaMentionsRow(field, value) {
+  const links = parseLinkEntries(value);
+  const valueParagraphs = links.length
+    ? links.map(({ label, url }) => new Paragraph({
+        children: [new ExternalHyperlink({
+          link: url,
+          children: [new TextRun({ text: label, size: 20, color: "0563C1", underline: {} })]
+        })]
+      }))
+    : [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })];
+
+  return new TableRow({ children: [
+    new TableCell({
+      width: { size: 3500, type: WidthType.DXA }, borders, margins: cellMargins,
+      shading: { fill: "F2F2F2", type: ShadingType.CLEAR },
+      children: [new Paragraph({ children: [new TextRun({ text: field, bold: true, size: 20 })] })]
+    }),
+    new TableCell({
+      width: { size: 5860, type: WidthType.DXA }, borders, margins: cellMargins,
+      shading: { fill: "FFFFFF", type: ShadingType.CLEAR },
+      children: valueParagraphs
+    })
+  ]});
+}
+
 // Build rows — replace placeholder strings with extracted values.
 // Use linkedDataRow for LinkedIn URL and Organization Name, e.g.:
 //   linkedDataRow("LinkedIn URL", "https://www.linkedin.com/in/...", "https://www.linkedin.com/in/...", " [web]")
 //   linkedDataRow("Organization Name", "Pratt Institute", "https://www.pratt.edu/")
+// Use mediaMentionsRow for Media Mentions + Links, e.g.:
+//   mediaMentionsRow("Media Mentions + Links", "NPR: \"Fresh Air\" | https://npr.org/... [web]")
 const rows = [
   sectionHeaderRow("Basic Background Info"),
   dataRow("Name including nickname", ""),
   dataRow("Pronouns", ""),
   dataRow("LinkedIn URL", ""),
+  dataRow("A+A Point Person", "Erin"),
+  mediaMentionsRow("Media Mentions + Links", ""),
   // ... all fields in schema order, grouped by section
   // Personal Life includes: Sexual Orientation + Openness (after Wedding Anniversary)
   // Giving Background includes: Volunteering (after Giving History), Top advocacy and philanthropic issues
