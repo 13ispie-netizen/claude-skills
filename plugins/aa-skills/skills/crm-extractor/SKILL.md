@@ -153,36 +153,42 @@ Do not consider a schema change done until this reports everything in sync.
 41. Long-range personal goals
 
 ### Professional Life
-42. Employment History (Company, Location, Dates, Title)
-43. Education
+42. Employment History (bulleted, reverse-chronological — see List Field Formatting Rules)
+43. Education (bulleted, reverse-chronological — see List Field Formatting Rules)
 44. Extracurricular College Activities
 45. Military Service + Discharge Rank
 46. Attitude Towards Current Company
 47. Major Business Competitors
 48. Immediate Business Objective
 49. Long-range business objective
-50. Professional or Trade Associations
+50. Professional or Trade Associations (bulleted, reverse-chronological — see List Field Formatting Rules)
 51. Mentors
 
 ### Giving Background
 52. Process for Making Donations (incl. other decision-makers)
-53. Current Board Position(s)
-54. Past Board Position(s)
+53. Current Board Position(s) (bulleted, reverse-chronological — see List Field Formatting Rules)
+54. Past Board Position(s) (bulleted, reverse-chronological — see List Field Formatting Rules)
 55. Giving History (A+A + others)
-56. Volunteering
+56. Volunteering (bulleted, reverse-chronological — see List Field Formatting Rules)
 57. Top advocacy and philanthropic issues
 58. Reasons for supporting A+A
 
 ---
 
-## Work History Rules
+## List Field Formatting Rules
 
-Field 42 (Employment History) must capture ALL roles mentioned across time:
-- Format each role as: `Company Name | Title | Location | Dates`
-- If multiple roles exist, separate them with a semicolon: `Role 1; Role 2; Role 3`
-- If org name unknown: `name not recalled | Title | Location | Dates`
-- Missing dates or location: leave that segment blank but keep the delimiters
-- Do NOT drop a role because some details are missing
+These fields must be rendered as **bulleted lists, most recent entry first**: Employment History, Education, Professional or Trade Associations, Current Board Position(s), Past Board Position(s), Volunteering.
+
+Each entry follows this exact format:
+```
+- Company/Organization | Role | City (start year - end year)
+```
+- Use "present" instead of an end year for an ongoing role: `(2022 - present)`
+- If the org name is unknown: `- name not recalled | Role | City (start year - end year)`
+- If a segment is missing (role, city, or dates), drop that segment and its surrounding delimiter rather than leaving it blank — e.g. `- Company | Role (2019 - 2021)` with no city known.
+- Do NOT drop an entry because some details are missing — capture every entry mentioned across time.
+- Order entries most recent to oldest. If an entry is ongoing (no end date), it sorts first.
+- In the underlying field value, separate entries with a semicolon (`Entry 1; Entry 2; Entry 3`) — the semicolons are converted to separate bullet lines when rendered in the document (see `bulletedListRow` in the Document Generation Scaffold).
 
 ---
 
@@ -458,12 +464,41 @@ function mediaMentionsRow(field, value) {
   ]});
 }
 
+// Same layout as dataRow, but renders the value as a bulleted list, one bullet per
+// semicolon-separated entry — most recent first. Use for Employment History, Education,
+// Professional or Trade Associations, Current/Past Board Position(s), and Volunteering.
+function bulletedListRow(field, value) {
+  const entries = (value || "").split(";").map(s => s.trim()).filter(Boolean);
+  const valueParagraphs = entries.length
+    ? entries.map(entry => new Paragraph({
+        bullet: { level: 0 },
+        children: [new TextRun({ text: entry, size: 20 })]
+      }))
+    : [new Paragraph({ children: [new TextRun({ text: "", size: 20 })] })];
+
+  return new TableRow({ children: [
+    new TableCell({
+      width: { size: 3500, type: WidthType.DXA }, borders, margins: cellMargins,
+      shading: { fill: "F2F2F2", type: ShadingType.CLEAR },
+      children: [new Paragraph({ children: [new TextRun({ text: field, bold: true, size: 20 })] })]
+    }),
+    new TableCell({
+      width: { size: 5860, type: WidthType.DXA }, borders, margins: cellMargins,
+      shading: { fill: "FFFFFF", type: ShadingType.CLEAR },
+      children: valueParagraphs
+    })
+  ]});
+}
+
 // Build rows — replace placeholder strings with extracted values.
 // Use linkedDataRow for LinkedIn URL and Organization Name, e.g.:
 //   linkedDataRow("LinkedIn URL", "https://www.linkedin.com/in/...", "https://www.linkedin.com/in/...", " [web]")
 //   linkedDataRow("Organization Name", "Pratt Institute", "https://www.pratt.edu/")
 // Use mediaMentionsRow for Media Mentions + Links, e.g.:
 //   mediaMentionsRow("Media Mentions + Links", "NPR: \"Fresh Air\" | https://npr.org/... [web]")
+// Use bulletedListRow for Employment History, Education, Professional or Trade Associations,
+// Current Board Position(s), Past Board Position(s), and Volunteering, e.g.:
+//   bulletedListRow("Employment History", "Acme Co | Director | Los Angeles (2022 - present); Beta Inc | Manager | Chicago (2018 - 2022)")
 const rows = [
   sectionHeaderRow("Basic Background Info"),
   dataRow("Name including nickname", ""),
@@ -473,7 +508,8 @@ const rows = [
   mediaMentionsRow("Media Mentions + Links", ""),
   // ... all fields in schema order, grouped by section
   // Personal Life includes: Sexual Orientation + Openness (after Wedding Anniversary)
-  // Giving Background includes: Volunteering (after Giving History), Top advocacy and philanthropic issues
+  // Professional Life: use bulletedListRow for Employment History, Education, Professional or Trade Associations
+  // Giving Background: use bulletedListRow for Current Board Position(s), Past Board Position(s), Volunteering (after Giving History), then Top advocacy and philanthropic issues
 ];
 
 const children = [];
@@ -578,3 +614,4 @@ _(Rules are appended here automatically as the user defines them during sessions
 - Always ask for "Adjectives to Describe" in the same pre-generation message as pronouns. Never skip this question.
 - Contact Log table has FIVE columns: Date (1100 DXA), Format (1500 DXA), Name (1500 DXA), Description / Notes (3560 DXA), Notes Link (1700 DXA). The Notes Link column holds a clickable "Notes" hyperlink to any meeting-notes document created from that meeting; leave blank if none exists, and add/update it when notes are later created.
 - Always hyperlink the LinkedIn URL value and the Organization Name value in the profile table (blue, underlined). Link the org name to the organization's real website; never invent a URL — if none is known, leave it as plain text.
+- Render Employment History, Education, Professional or Trade Associations, Current Board Position(s), Past Board Position(s), and Volunteering as bulleted lists, most recent first, in the format `Company/Organization | Role | City (start year - end year)` — see List Field Formatting Rules and `bulletedListRow` in the Document Generation Scaffold.
