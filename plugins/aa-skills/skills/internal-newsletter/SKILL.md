@@ -28,7 +28,7 @@ This workflow touches a lot of sources. Keep it cheap:
 
 ## Sections, in this exact order
 
-Do not add, rename, or reorder sections.
+Do not add, rename, or reorder sections. Sections with no content are dropped entirely (see Hard rules).
 
 ### 1. Opening note from Erin
 One or two sentences. Fun, energetic, welcoming. Include a joke that lands with architecture students.
@@ -76,13 +76,15 @@ From `#inspo`.
 
 ## Freshness rule (Resources and Inspo)
 
-Never include an item unless its channel has messages from the last 30 days. Then check each item individually and drop anything whose deadline, application date, or event date has already passed. If a channel has nothing qualifying, write a one-line nudge instead of stretching for old content.
+Never include an item unless its channel has messages from the last 30 days. Then check each item individually and drop anything whose deadline, application date, or event date has already passed. If nothing survives, omit the section under the empty-section rule.
 
 ## Hard rules
 
 - **No caveats in the doc.** Never write "verify," "check this," "TBD," or any hedge into the deliverable. Surface every uncertainty to Erin in chat.
 - **No em dashes.** Use commas, colons, or periods.
-- If a source is unreachable or a section has no qualifying content, write a short plain note in that section. Never invent content.
+- **Empty sections get cut, not filled.** If a section has no qualifying content, leave it out of the doc entirely, heading and standing closing line included. Never pad with a placeholder note, an apology, or stretched-for old content. Inspo is the usual casualty. Say what you dropped in chat instead.
+- Same when a source is unreachable: omit the section from the doc and flag the gap to Erin in chat. Never invent content.
+- Sections that survive always keep their exact standing closing line.
 - Run a negative-parallelism pass before publishing (see voice-principles.md).
 
 ## Writing the doc
@@ -94,6 +96,6 @@ Create as Google Doc from Markdown so headings, links, and images convert. See `
 ## Report back in chat
 
 - Doc name and link
-- Sections with thin or missing source data
+- Sections you dropped for having no content, and why
 - Birthday conflicts across the three roster sources, and how you resolved them
 - Anything you dropped and why
