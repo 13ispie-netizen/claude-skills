@@ -1,0 +1,99 @@
+---
+name: internal-newsletter
+description: "Draft A+A's internal volunteer newsletter as a Google Doc, pulling from board minutes, the board deck, the Fathom board check-in, Slack, the A+A calendar, and the volunteer roster sheets. Use whenever Erin says 'internal newsletter', 'volunteer newsletter', 'draft the newsletter', 'monthly newsletter', or asks for the member/volunteer update. Always use this skill when the audience is A+A volunteers and the output is the recurring internal newsletter."
+---
+
+# A+A Internal Newsletter
+
+Build the monthly volunteer newsletter as a Google Doc. Audience is college-age A+A volunteers. Voice is Erin's: short, warm, fun, direct.
+
+**Destination folder:** see `reference/sources.md`.
+**File name:** `YYMMDD_A+A Internal Newsletter` (today's date).
+
+## Before drafting
+
+1. Read `reference/sources.md` for all IDs, column maps, and channel IDs.
+2. Read `00. Resources/voice-principles.md` in the workspace root. Match it.
+3. Re-read every source live. Never reuse a prior month's pull.
+
+## Token discipline
+
+This workflow touches a lot of sources. Keep it cheap:
+
+- **Fathom:** use `get_meeting_summary`. Never pull the transcript.
+- **Board deck:** only open it if the minutes leave project updates thin. The minutes plus the Fathom summary usually cover Wins.
+- **Slack:** `response_format: "concise"`, `limit: 20`. Check the newest message date first. If the newest post is older than 30 days, skip that section and stop reading.
+- **Sheets:** `batchGet` only the named columns. Never read whole sheets.
+- **Photos:** use Slack avatars. Web searches for volunteer photos reliably fail; do not run them.
+
+## Sections, in this exact order
+
+Do not add, rename, or reorder sections.
+
+### 1. Opening note from Erin
+One or two sentences. Fun, energetic, welcoming. Include a joke that lands with architecture students.
+**Never mention the board, board meetings, or board decisions in the opening.**
+
+### 2. Get Involved!
+Events from the A+A calendar in the next 30 days, in three subsections in this order: **NY**, **LA**, **A+A-Wide**.
+
+- Hyperlink the **event title** to its calendar `htmlLink`. If Erin supplies an RSVP form link, use that instead.
+- Format: `**[Title](link)** | Day, Date, Time | Location or "Virtual". One-line description.`
+- A+A-Wide items are virtual/all-org. Give both PT and ET.
+- **Exclude conferences that are not in NY or LA.** They can still appear under Wins.
+- End the section, every time, with exactly:
+  `Want everything in one place? [Subscribe to the A+A-wide Google Calendar](https://calendar.google.com/calendar/u/0?cid=YXJjaC5hZHZvY2FjeUBnbWFpbC5jb20).`
+
+**Timezone trap:** the A+A calendar returns offsets in `America/Denver` regardless of the event's own `timeZone` field. Convert from the UTC offset, not the label, or every time will be wrong.
+
+### 3. Project Updates
+One block per active project. Header format:
+`[Project Name] | [Program Type] | [City]`
+
+- **Maximum 3 bullets** per project.
+- Only what a general volunteer cares about. Skip budget, cash flow, governance, and anything board-only.
+
+### 4. Wins
+Grants, awards, RFPs won, speaking engagements, org milestones.
+- **Never include funding amounts for grants.** Name the funder and the award, nothing more.
+
+### 5. Birthdays This Month
+Cross-reference all three roster sources (see `reference/sources.md`) and include only people who pass their source's filter. Add each person's Slack avatar.
+End the section, every time, with exactly:
+`Is it your birthday but you don't see yourself here? Make sure you've taken the [volunteer entrance survey](https://docs.google.com/forms/d/e/1FAIpQLScJdM3tj149jdse8WCM1ZpHRfKGoXbpPx1gmlyttp68gAGsbg/viewform?usp=dialog)`
+
+If someone has no Slack avatar, leave them photo-free in the doc and give Erin their LinkedIn URL in chat instead.
+
+### 6. Member Wins
+From the `#kudos` channel. End, every time, with exactly:
+`Don't forget to send your wins in #kudos!`
+
+### 7. Resources
+Internships, scholarships, jobs, networking events from the two resource channels.
+
+### 8. Inspo from Other Orgs
+From `#inspo`.
+
+## Freshness rule (Resources and Inspo)
+
+Never include an item unless its channel has messages from the last 30 days. Then check each item individually and drop anything whose deadline, application date, or event date has already passed. If a channel has nothing qualifying, write a one-line nudge instead of stretching for old content.
+
+## Hard rules
+
+- **No caveats in the doc.** Never write "verify," "check this," "TBD," or any hedge into the deliverable. Surface every uncertainty to Erin in chat.
+- **No em dashes.** Use commas, colons, or periods.
+- If a source is unreachable or a section has no qualifying content, write a short plain note in that section. Never invent content.
+- Run a negative-parallelism pass before publishing (see voice-principles.md).
+
+## Writing the doc
+
+Create as Google Doc from Markdown so headings, links, and images convert. See `reference/sources.md` for the two working methods and the multipart gotcha.
+
+**Revisions:** edit the existing doc in place, same file ID and link. Only create a new dated file on a new day or for a major rewrite. When unsure, ask.
+
+## Report back in chat
+
+- Doc name and link
+- Sections with thin or missing source data
+- Birthday conflicts across the three roster sources, and how you resolved them
+- Anything you dropped and why
