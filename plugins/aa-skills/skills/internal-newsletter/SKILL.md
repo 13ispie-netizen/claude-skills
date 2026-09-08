@@ -7,8 +7,9 @@ description: "Draft A+A's internal volunteer newsletter as a Google Doc, pulling
 
 Build the monthly volunteer newsletter as a Google Doc. Audience is college-age A+A volunteers. Voice is Erin's: short, warm, fun, direct.
 
-**Destination folder:** see `reference/sources.md`.
+**Google Doc destination:** see `reference/sources.md`.
 **File name:** `YYMMDD_A+A Internal Newsletter` (today's date).
+**Project home:** `A+A Marketing HQ/Internal Newsletter/`. Every issue gets its own subfolder there named `YYMMDD_internal newsletter`. Create it first and keep the issue's working files (email HTML, resized images, notes) in it.
 
 ## Before drafting
 
@@ -92,6 +93,30 @@ Never include an item unless its channel has messages from the last 30 days. The
 Create as Google Doc from Markdown so headings, links, and images convert. See `reference/sources.md` for the two working methods and the multipart gotcha.
 
 **Revisions:** edit the existing doc in place, same file ID and link. Only create a new dated file on a new day or for a major rewrite. When unsure, ask.
+
+## Worked example
+
+The September 2026 issue is the reference implementation:
+`https://docs.google.com/document/d/1ZP_sT_kPg7cpM7yYIZFl4SMRCuxLk3zD7OuUploDuFE/edit`
+
+**Re-read it live at the start of every run.** Erin edits it after publishing, and those edits are the current house style. Do not work from a remembered version of it.
+
+Conventions it establishes, beyond the rules above:
+
+- **Get Involved covers deadlines, not just events.** Application and RSVP due dates get their own line (`USC Student Applications Due | Tues, Sept 22, 11:59 PM PT`).
+- **Every A+A-Wide item says why a volunteer would care.** Not `A+A Board Check-In | Virtual.` but `A+A Board Check-In | Virtual. Listen in or give comments on our annual budget.`
+- **Event descriptions carry real context** about the partner and the community, not just logistics.
+- **Project bullets describe what volunteers will make or do.** Erin cut contract mechanics and replaced them with the actual deliverable, e.g. high-school students designing a mobile shaded check-in kiosk.
+- **Status claims stay literal.** She corrected "the Tool Library is open" to "is getting ready to open." Check the state of a thing before asserting it.
+
+## Converting to an HTML email
+
+Only after Erin has finished editing the Doc, and only when she asks.
+
+1. Re-read the live Doc. Her edits are the content; never rebuild from your own draft.
+2. Build a branded HTML email from it. Brand rules and the email-specific constraints are in `reference/sources.md`.
+3. Save it as a Gmail draft with photos embedded inline. Leave the recipient list empty for Erin to fill.
+4. Save the HTML and the resized images into the issue folder.
 
 ## Report back in chat
 
