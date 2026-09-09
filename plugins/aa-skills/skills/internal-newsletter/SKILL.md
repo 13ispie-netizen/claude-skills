@@ -109,14 +109,11 @@ Conventions it establishes, beyond the rules above:
 - **Project bullets describe what volunteers will make or do.** Erin cut contract mechanics and replaced them with the actual deliverable, e.g. high-school students designing a mobile shaded check-in kiosk.
 - **Status claims stay literal.** She corrected "the Tool Library is open" to "is getting ready to open." Check the state of a thing before asserting it.
 
-## Converting to an HTML email
+## Handing off to the email
 
-Only after Erin has finished editing the Doc, and only when she asks.
+The Google Doc is the deliverable for this skill. Stop here.
 
-1. Re-read the live Doc. Her edits are the content; never rebuild from your own draft.
-2. Build a branded HTML email from it. Brand rules and the email-specific constraints are in `reference/sources.md`.
-3. Save it as a Gmail draft with photos embedded inline. Leave the recipient list empty for Erin to fill.
-4. Save the HTML and the resized images into the issue folder.
+When Erin asks for the email version, that is a separate skill: **`newsletter-to-email`**. Do not build the email inside this workflow.
 
 ## Report back in chat
 
