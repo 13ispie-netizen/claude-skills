@@ -96,7 +96,9 @@ Confirm headings exist, `inlineObjects` matches the number of photos, and no `gw
 
 Navy `#282739` background, white body text, Public Sans with an `Arial, Helvetica, sans-serif` fallback (webfonts do not load in Outlook). Section accents rotate: salmon `#f5a17d` for Get Involved and Birthdays, green `#2fa690` for Project Updates and Kudos, yellow `#f4bf5f` for Wins and Resources. Each `<h2>` gets a 56x3px accent bar beneath it.
 
-Email departs from the carousel spec in two ways: no gradient glow circles (radial gradients do not render in Outlook), and layout is 600px table-based with fully inline styles.
+Email departs from the carousel spec in three ways: no gradient glow circles (radial gradients do not render in Outlook), **no accent bars under headers** (Erin ruled these out for email on 2026-09-09), and layout is 600px table-based with fully inline styles.
+
+No horizontal rules of any kind. No full-width dividers between sections, no short bars under headings. Sections are separated by whitespace only.
 
 ### Images
 
