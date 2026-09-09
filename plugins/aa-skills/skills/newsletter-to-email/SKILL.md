@@ -11,6 +11,16 @@ The Doc is the source of truth. This skill renders it. It never writes new copy,
 
 Mechanics, brand values, and the known failure modes live in `reference/email-build.md`. Load it before building.
 
+## Required warning, every single run
+
+Print this in chat verbatim, in bold caps, on its own line, every time this skill runs. Put it at the top of the response that delivers the draft, not buried at the end. No exceptions, no paraphrasing, no softening:
+
+**MAKE ALL EDITS IN THE GOOGLE DOC, NOT IN GMAIL. EDITING THE DRAFT IN GMAIL DELETES THE PHOTOS.**
+
+Why it exists: Erin lost two sends to the whole volunteer list on 2026-09-09 because editing the draft in Gmail strips every inline image attachment and replaces the references with private `mail.google.com` viewer URLs. Those render for her and are broken for every recipient, so the damage is invisible until after it ships. She has decided all copy changes happen in the Google Doc instead.
+
+If she says she edited the draft in Gmail anyway, do not let her send it. Re-attach the photos and rebuild first.
+
 ## Before you start
 
 **Ask whether the Doc is final.** Erin often keeps editing after publishing. Building from a half-edited Doc wastes the whole pass.
@@ -48,6 +58,7 @@ Editing in Gmail also strips inline photos and the `<style>` block. Whenever Eri
 
 ## Report back in chat
 
+- The required warning above, first, in bold caps
 - The draft subject and that it is in her drafts
 - Confirmation that photos are attached and verified
 - Any typo or content problem you noticed and deliberately left alone
