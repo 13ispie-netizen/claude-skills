@@ -17,8 +17,9 @@ hand-edit it and expect the edit to survive a sync.
 ## Run it
 
 ```
-python3 scripts/build_calendar.py            # dry run: prints the placement table, writes nothing
-python3 scripts/build_calendar.py --apply    # duplicates the tab as backup, then rebuilds
+python3 scripts/build_calendar.py                    # dry run: preflight + placement table
+python3 scripts/build_calendar.py --apply            # back up the tab, then rebuild
+python3 scripts/build_calendar.py --apply --accept-schema   # after Erin confirms a column change
 ```
 
 Always dry-run first, show Erin the placement table, and get a yes before `--apply`.
@@ -27,6 +28,23 @@ Always dry-run first, show Erin the placement table, and get a yes before `--app
 Requires the `gws` CLI. Without it, stop and say so: the Google Drive connector cannot read cell
 fill colors, and priority *is* the fill color, so a sync without `gws` would silently drop every
 priority grant.
+
+## Step 1: schema preflight (automatic)
+
+Every run **re-reads FUTURE LOOKING first** and checks its column structure before any placement
+work. This is not optional and costs no extra API call -- it runs off the same read.
+
+- **A column the calendar depends on is gone** → hard stop. Nothing is computed or written.
+- **Structure drifted but everything still resolves** (columns added, removed, renamed, moved) →
+  prints a labelled diff against the last-accepted baseline in `reference/schema.json`, then
+  continues the dry run.
+- **`--apply` with unreviewed drift** → refuses to write. Show Erin the diff, then re-run with
+  `--accept-schema` to proceed and record the new baseline.
+
+This exists because the source columns really do move. "Second Round Start date" and "Second Round
+Due" once appeared exactly where "Report due" and "Reporting Required" used to be, and
+"Preliminary Proposal Due" was deleted. Reading positionally would have written a calendar full of
+plausible, wrong dates.
 
 ## What lands on the calendar
 
@@ -67,6 +85,8 @@ Grants whose revisit falls outside the window are reported, never silently dropp
   and is listed in the run output for Erin to assign. Never guess silently.
 - `reference/labels.json` -- display-name overrides for rows whose Grant Name cell is blank or holds
   junk (e.g. the Durfee row, where an amount ended up in the Organization column).
+- `reference/schema.json` -- last-accepted column layout. Regenerated with `--accept-schema`;
+  delete it to re-snapshot from scratch.
 - Window, palette, banners and `ALWAYS_KEEP` are constants at the top of the script.
 
 ## Things that have actually gone wrong

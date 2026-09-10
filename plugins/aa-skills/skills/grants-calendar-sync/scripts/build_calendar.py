@@ -48,6 +48,11 @@ MON3 = {n[:3].upper(): i for i, n in enumerate(MONTH_NAMES) if n}
 HERE = os.path.dirname(os.path.abspath(__file__))
 CATS_FILE = os.path.join(HERE, "..", "reference", "categories.json")
 LABELS_FILE = os.path.join(HERE, "..", "reference", "labels.json")
+SCHEMA_FILE = os.path.join(HERE, "..", "reference", "schema.json")
+
+# set from CLI in main()
+ACCEPT_SCHEMA = False
+APPLY = False
 
 BLACK = {"style": "SOLID", "colorStyle": {"rgbColor": {"red": 0, "green": 0, "blue": 0}}}
 
@@ -98,6 +103,68 @@ def parse_date(s, after=None):
     return None
 
 
+def preflight(hdr, IX):
+    """Re-read the source structure before doing anything else.
+
+    Hard-stops when a column the calendar depends on has vanished. Otherwise
+    reports any drift (added / removed / moved / renamed headers) against the
+    last-accepted snapshot in reference/schema.json, so a silent restructure
+    can never quietly produce a wrong calendar.
+    """
+    missing = [k for k, v in IX.items() if v is None]
+    if missing:
+        sys.exit(
+            f"STRUCTURE CHANGED -- cannot continue.\n"
+            f"These fields no longer resolve to a column in '{SRC_TAB}': {missing}\n"
+            f"Current headers: {hdr}\n"
+            f"Fix the header text in the sheet, or update the `find(...)` terms in this script.")
+
+    old = {}
+    if os.path.exists(SCHEMA_FILE):
+        old = json.load(open(SCHEMA_FILE))
+    prev = old.get("headers")
+    if prev is None:
+        print(f"schema: no baseline recorded; snapshotting {len(hdr)} columns")
+        _write_schema(hdr, IX)
+        return
+
+    if prev == hdr:
+        print(f"schema: unchanged ({len(hdr)} columns)")
+        return
+
+    prev_ix = {h: i for i, h in enumerate(prev) if h}
+    cur_ix = {h: i for i, h in enumerate(hdr) if h}
+    added = [h for h in cur_ix if h not in prev_ix]
+    removed = [h for h in prev_ix if h not in cur_ix]
+    moved = [(h, prev_ix[h], cur_ix[h]) for h in cur_ix
+             if h in prev_ix and prev_ix[h] != cur_ix[h]]
+
+    def L(i):
+        return chr(65 + i) if i < 26 else "A" + chr(65 + i - 26)
+    print("\n*** COLUMN STRUCTURE CHANGED in FUTURE LOOKING ***")
+    for h in removed:
+        print(f"    removed : {L(prev_ix[h])}  {h!r}")
+    for h in added:
+        print(f"    added   : {L(cur_ix[h])}  {h!r}")
+    for h, a, b in moved:
+        print(f"    moved   : {L(a)} -> {L(b)}  {h!r}")
+    print("    all fields the calendar needs still resolve, so placement is safe.")
+
+    if APPLY and not ACCEPT_SCHEMA:
+        sys.exit("\nRefusing to --apply over an unreviewed structure change.\n"
+                 "Show Erin the diff above. Re-run with --accept-schema once she confirms.")
+    if ACCEPT_SCHEMA:
+        _write_schema(hdr, IX)
+        print("    baseline updated.")
+    else:
+        print("    (dry run -- baseline not updated)")
+
+
+def _write_schema(hdr, IX):
+    json.dump({"headers": hdr, "resolved": IX, "recorded": date.today().isoformat()},
+              open(SCHEMA_FILE, "w"), indent=2)
+
+
 def read_source():
     d = gws("get", {"spreadsheetId": SID, "ranges": [f"{SRC_TAB}!A1:Z400"],
                     "fields": "sheets.data.rowData.values(formattedValue,"
@@ -116,9 +183,7 @@ def read_source():
           "name": find("grant name"), "org": find("organization", "link their"),
           "amount": find("amount"), "r2s": find("second round start"),
           "r2d": find("second round due")}
-    missing = [k for k, v in IX.items() if v is None]
-    if missing:
-        sys.exit(f"ERROR: columns not found in {SRC_TAB}: {missing}\nheaders: {hdr}")
+    preflight(hdr, IX)
 
     def fv(v, i):
         return ((v[i].get("formattedValue") if i is not None and i < len(v) else None) or "").strip()
@@ -305,7 +370,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--payload", default="calendar_payload.json")
+    ap.add_argument("--accept-schema", action="store_true",
+                    help="acknowledge a reported column-structure change and update the baseline")
     a = ap.parse_args()
+    global ACCEPT_SCHEMA, APPLY
+    ACCEPT_SCHEMA, APPLY = a.accept_schema, a.apply
 
     planned, outside, unknown = build()
     reqs, report, endrow = render(planned)

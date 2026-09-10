@@ -1,0 +1,40 @@
+{
+  "headers": [
+    "DUE/Date",
+    "Application Type",
+    "Revisit",
+    "Notificaiton Date (est.)",
+    "Grant Name                              (Link Website)",
+    "Use",
+    "Organization                (Link their website)",
+    "Amount (Range)",
+    "Matching",
+    "Google Drive Folder",
+    "Quick Description",
+    "Grant Start Date",
+    "Grant end date",
+    "Second Round Start date",
+    "Second Round Due",
+    "Report due",
+    "Reporting Required",
+    "Similar Groups Funded",
+    "Contact Person",
+    "Contacted?",
+    "A+A Point Person (responsible for submitting)",
+    "Award Notification Date",
+    "Important Reporting Dates",
+    "Prioirty (1-5)",
+    "Funds Recieved?",
+    ""
+  ],
+  "resolved": {
+    "due": 0,
+    "revisit": 2,
+    "name": 4,
+    "org": 6,
+    "amount": 7,
+    "r2s": 13,
+    "r2d": 14
+  },
+  "recorded": "2026-09-10"
+}
