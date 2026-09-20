@@ -104,6 +104,28 @@ Then ask:
 
 ---
 
+## STEP 4: ASK ABOUT PRIORITY — ALWAYS
+
+Before writing the row, ask Erin whether this is a high-priority grant. Ask it as a direct yes/no question via `AskUserQuestion` (header: `Priority`) and wait for her answer. Never assume, never skip it, and never infer priority from the research.
+
+Combine this with the Step 3 confirmation so she answers both in one pass.
+
+---
+
+## STEP 5: WRITE THE ROW
+
+Re-read the live tracker immediately before writing — header positions and the last populated row, every time. Never reuse positions captured earlier in the conversation.
+
+Append the row beneath the last populated row.
+
+**If Erin answered YES to high priority:** highlight the entire written row with a light yellow fill (`#FFF2CC`) so it stands out when she scans the tab. Apply the fill only across the columns the tracker actually uses, not the full 1,000-column row.
+
+**If she answered NO:** write the row with no fill.
+
+Then tell her the tab, the row number, and whether it was highlighted.
+
+---
+
 ## Notes
 
 - Never fabricate data. If a field cannot be found after both research rounds, leave it blank.
