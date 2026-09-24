@@ -107,7 +107,7 @@ then `https://people.googleapis.com/v1/people:batchGet?resourceNames=…&resourc
 | Sheet column | Source on the Google Contact |
 |---|---|
 | A `email` | primary `emailAddresses[].value` (the one with `metadata.primary: true`, else the first) |
-| B `First name` | `names[0].givenName`, credential suffixes stripped. **Leave BLANK if the contact has no name** — do not put the email local-part in the sheet (that's a Phase B / Squarespace-only fallback). |
+| B `First name` | `names[0].givenName`, credential suffixes stripped. **Leave BLANK if the contact has no name** — never substitute the email local-part. The row still gets appended; Phase B then holds it back until Erin fills the name in (step 6). |
 | C `Last name` | `names[0].familyName`, credential suffixes stripped. Blank if absent (Phase B substitutes a placeholder). |
 | D `Company` | `organizations[0].name` |
 | E `Job Title` | `organizations[0].title` (append `, <department>` only if the title alone is meaningless) |
@@ -218,17 +218,26 @@ This set = the Phase A additions **+** anything Erin added by hand since the las
 
 **Run straight through.** Do not pause to ask permission before writing to Squarespace; Erin does
 not want a checkpoint mid-run. If there's nothing to add, report "nothing new to sync" and skip to
-step 9. Anything questionable (garbled names, contacts with no name, people who look like vendors
-rather than newsletter audience) gets **synced anyway and flagged in the step 9 report** — she'd
-rather clean up afterward than answer questions mid-run. Adding a wrong person to a mailing list is
-reversible; blocking the run is the bigger cost.
+step 9. Anything questionable (garbled names, people who look like vendors rather than newsletter
+audience) gets **synced anyway and flagged in the step 9 report** — she'd rather clean up afterward
+than answer questions mid-run. Adding a wrong person to a mailing list is reversible; blocking the
+run is the bigger cost.
+
+**The one exception — no real first name.** A row whose `First name` (column B) is empty, or holds
+something that is not a human first name (an email local-part like `mas2646`, a company name, a
+bare initial), is **held back, not synced.** Never invent a first name and never fall back to the
+email local-part: it becomes the greeting in the newsletter, and past runs produced real sends
+addressed to "mas2646" and "vg2653". Leave the row's `Synced` cell blank so it stays queued, and
+list it in the step 9 held-back section. A blank **last** name is fine and still syncs — see step 7.
 
 ### 7. Create each contact in Squarespace
 
-For each confirmed row, call `create_contact` (`SquarespaceCLIAPI`) with:
+For each confirmed row — skipping the held-back rows from step 6 — call `create_contact`
+(`SquarespaceCLIAPI`) with:
 - `email` = column A (trimmed)
-- `firstName` = column B, or if blank, the part of the email before `@`
-- `lastName` = column C, or if blank, `.`
+- `firstName` = column B, always. There is no fallback: a row without a real first name never
+  reaches this step.
+- `lastName` = column C, or if blank, `.` (a missing surname is harmless — it is never the greeting)
 - `locale` = `en-US`
 - `acceptsMarketing` = `true`
 
@@ -242,7 +251,8 @@ matching row synced.
 while the skill is running — during the 2026-07-30 run a row was deleted mid-run and every row
 below it shifted up by one, which would have marked the wrong people. Re-read `A1:L5000`,
 re-confirm the `Synced` column index from the header, then map each successful email to its
-*current* row. An email that has vanished from the sheet was deleted deliberately — skip it,
+*current* row. Held-back rows from step 6 are left blank — never mark a row synced that was not
+actually pushed. An email that has vanished from the sheet was deleted deliberately — skip it,
 don't re-add it.
 
 Write `yes` into the `Synced` column for every successful row, in ONE batched write to
@@ -259,7 +269,11 @@ Summarize:
 1. **Pulled from `'@@new`:** N appended to the sheet (rows X–Y), N skipped as already on the sheet,
    N skipped for having no email address.
 2. **Squarespace:** N contacts added, N already present, and any errors with the offending email.
-3. **⚠ Manual step for Erin — remove these people from `'@@new`.** This skill does not touch
+3. **Held back — needs a real first name.** Every row skipped under the step 6 exception, listed as
+   `sheet row N | email | what column B currently holds`. Say plainly that they are still queued:
+   once she types a first name into column B, the next run picks them up automatically, because
+   their `Synced` cell was left blank. Omit this section entirely when nothing was held back.
+4. **⚠ Manual step for Erin — remove these people from `'@@new`.** This skill does not touch
    Google Contacts. List each person appended in Phase A as a name hyperlinked to their contact
    (`https://contacts.google.com/person/<id>`, where `<id>` is the `resourceName` minus the
    `people/` prefix), and link the group itself so she can clear it in one pass. Say plainly that
