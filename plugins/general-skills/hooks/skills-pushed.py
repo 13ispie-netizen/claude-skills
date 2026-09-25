@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""Stop hook: two guards against skill/hook work that never leaves this machine.
+"""Stop hook: three guards against skill/hook work that never reaches a machine.
 
 1. ~/claude-skills must have nothing uncommitted and nothing unpushed.
 2. ~/.claude/settings*.json must not define hooks locally -- hooks belong in the
    general-skills plugin so they sync to every machine.
+3. The installed plugin cache must match the repo. Pushing changes the source,
+   not what Claude loads; plugins run from a pinned snapshot under
+   ~/.claude/plugins/cache/ that only moves on `claude plugin update`.
+
+Guard 3 catches the two ways a shipped skill silently fails to arrive:
+  - repo version ahead of installed version -> nobody ran the update
+  - contents differ at the SAME version -> the updater no-ops forever, because
+    it compares version numbers rather than file contents
 
 Enforces the Skill Development rules in CLAUDE.md. Exits 0 silently when clean.
 """
@@ -50,6 +58,92 @@ for name in ("settings.json", "settings.local.json"):
             f"~/.claude/{name} defines hooks locally: {', '.join(local_hooks)}.\n"
             "Hooks belong in plugins/general-skills/hooks/ so they sync to every machine."
         )
+
+# --- Guard 3: installed plugin cache matches the repo -------------------------
+# Compare only the files that carry behavior, so install metadata never trips this.
+TRACKED = ("SKILL.md", "hooks.json", ".py", ".sh", "plugin.json")
+
+
+def tracked_files(root):
+    """Relative paths of behavior-carrying files under root."""
+    found = {}
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d != ".git"]
+        for fn in filenames:
+            if fn.startswith("."):
+                continue
+            if fn in TRACKED or fn.endswith(TRACKED[2:]):
+                full = os.path.join(dirpath, fn)
+                found[os.path.relpath(full, root)] = full
+    return found
+
+
+def read(path):
+    try:
+        with open(path, "rb") as fh:
+            return fh.read()
+    except Exception:
+        return None
+
+
+try:
+    with open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")) as fh:
+        installed = json.load(fh).get("plugins", {})
+except Exception:
+    installed = {}
+
+plugins_dir = os.path.join(repo, "plugins")
+if installed and os.path.isdir(plugins_dir):
+    for entry in sorted(os.listdir(plugins_dir)):
+        plugin_root = os.path.join(plugins_dir, entry)
+        manifest = read(os.path.join(plugin_root, ".claude-plugin", "plugin.json"))
+        if manifest is None:
+            continue
+        try:
+            meta = json.loads(manifest)
+        except Exception:
+            continue
+        name = meta.get("name", entry)
+        repo_version = str(meta.get("version", ""))
+
+        # Match "<name>@<marketplace>" regardless of which marketplace it came from.
+        record = next(
+            (v[0] for k, v in installed.items()
+             if k.split("@")[0] == name and isinstance(v, list) and v),
+            None,
+        )
+        # Not installed on this machine is a deliberate choice, not a mistake.
+        if not record:
+            continue
+
+        install_path = record.get("installPath", "")
+        installed_version = str(record.get("version", ""))
+
+        if not os.path.isdir(install_path):
+            continue
+
+        if repo_version != installed_version:
+            problems.append(
+                f"Plugin '{name}' is v{repo_version} in the repo but v{installed_version} "
+                f"is installed. Pushing does not update what Claude loads.\n"
+                f"Run: claude plugin update {name}@erin-skills"
+            )
+            continue
+
+        # Same version: any content difference means the bump was forgotten, and
+        # `claude plugin update` will report success while doing nothing.
+        stale = [
+            rel for rel, full in sorted(tracked_files(plugin_root).items())
+            if read(os.path.join(install_path, rel)) != read(full)
+        ]
+        if stale:
+            problems.append(
+                f"Plugin '{name}' differs from what is installed, but both are "
+                f"v{repo_version}, so the updater will no-op:\n  "
+                + "\n  ".join(stale)
+                + f"\nBump the version in plugins/{entry}/.claude-plugin/plugin.json, "
+                  f"push, then run: claude plugin update {name}@erin-skills"
+            )
 
 if not problems:
     sys.exit(0)
