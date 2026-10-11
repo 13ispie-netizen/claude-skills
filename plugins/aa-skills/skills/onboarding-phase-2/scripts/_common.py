@@ -22,17 +22,21 @@ SSN_KEY_RE = re.compile(r"social|ssn|security\s*n|f1_05", re.I)
 
 
 def ensure_pypdf():
-    """Re-exec inside a private venv that has pypdf, creating it on first run."""
+    """Re-exec inside a private venv that has pypdf + cryptography (for encrypted
+    e-signed PDFs), creating or topping it up on first run."""
     try:
         import pypdf  # noqa: F401
+        import cryptography  # noqa: F401
         return
     except ImportError:
         pass
     py = VENV / "bin" / "python"
+    if Path(sys.executable).resolve() == py.resolve():
+        raise SystemExit("pypdf/cryptography install failed in " + str(VENV))
     if not py.exists():
         subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)
-        subprocess.run([str(py), "-m", "pip", "-q", "install", "pypdf"], check=True,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run([str(py), "-m", "pip", "-q", "install", "pypdf", "cryptography"], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     os.execv(str(py), [str(py)] + sys.argv)
 
 

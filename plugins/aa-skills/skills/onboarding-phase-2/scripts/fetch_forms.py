@@ -107,9 +107,12 @@ def collect(threads, drive_folders, tmp):
 def summarize(path):
     """Return (summary dict, set of SSN candidates) for one PDF."""
     try:
-        reader = PdfReader(str(path))
+        return _summarize(PdfReader(str(path)), path)
     except Exception:
         return {"kind": "unreadable: Erin must review this form"}, set()
+
+
+def _summarize(reader, path):
     ssns, fields = set(), {}
     for key, f in (reader.get_fields() or {}).items():
         val = f.get("/V")
