@@ -24,8 +24,8 @@ Run scripts as `python3 "<this skill's dir>/scripts/<script>.py" ...`. Every scr
 
 ## Steps
 
-1. **Ask once** (single AskUserQuestion): employee's state (CA/NY) if Erin didn't say, how close she is with them, and the tone (brief + admin vs. warm). The audience is always the new employee.
-2. **Find threads.** `search_threads` (metadata/snippets only) for the thread where the employee sent the signed forms, plus the signed offer letter thread if it's separate. Note the latest message id in the forms thread. If the employee shared a Drive folder link instead of attaching the forms, note that link (from the snippet) too.
+1. **State.** Ask only for the employee's state (CA/NY), and only if Erin didn't say. Don't ask about closeness or tone: the email is always to the new employee, written as "know well + brief/admin".
+2. **Find threads.** `search_threads` (metadata/snippets only) for the thread where the employee sent the signed forms, plus the signed offer letter thread if it's separate. Note the latest message id in the forms thread. If the employee shared a Drive folder link instead of attaching the forms, note that link (from the snippet) too. If Erin already filed the forms in the employee's folder, pass that folder as `--drive-folder` too: files there are checked in place, not re-uploaded.
 3. **Folder.** Find `Last, First` under the parent, or create it with gws.
 4. **Checklist.** `checklist.py --folder F --name "Last, First" --state CA|NY` (add `--doc ID` if a copy already exists in the folder). It copies the live master, so Erin's edits there carry into every new copy. Report the removed lines.
    - State-only lines are cut by pattern: a line that starts with "NY"/"CA" or contains "(NY)"/"(CA)" (see `REMOVE` in `checklist.py`).

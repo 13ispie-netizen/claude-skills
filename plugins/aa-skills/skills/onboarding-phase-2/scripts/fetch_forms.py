@@ -53,10 +53,10 @@ def gmail_items(threads):
                 att = gws(["gmail", "users", "messages", "attachments", "get"],
                           params={"userId": "me", "messageId": m["id"], "id": part["body"]["attachmentId"]})
                 path.write_bytes(base64.urlsafe_b64decode(att["data"] + "=="))
-            yield int(m.get("internalDate", 0)), part["filename"].strip(), fetch
+            yield int(m.get("internalDate", 0)), part["filename"].strip(), fetch, None
 
 
-def drive_items(folder):
+def drive_items(folder, top_folder=None):
     """Yield (timestamp, filename, fetch) for every file in a shared Drive folder, recursively."""
     folder = re.sub(r".*/folders/([\w-]+).*", r"\1", folder)
     files = gws(["drive", "files", "list"], params={
@@ -66,11 +66,11 @@ def drive_items(folder):
     for f in files:
         mime = f["mimeType"]
         if mime == "application/vnd.google-apps.folder":
-            yield from drive_items(f["id"])
+            yield from drive_items(f["id"], top_folder)
             continue
         native = mime.startswith("application/vnd.google-apps.")
-        if native and mime.split(".")[-1] not in ("document", "spreadsheet", "presentation"):
-            continue  # shortcuts, forms, etc.
+        if native and (top_folder or mime.split(".")[-1] not in ("document", "spreadsheet", "presentation")):
+            continue  # shortcuts, forms, etc.; and never the checklist in the employee's own folder
         ts = int(datetime.fromisoformat(f["modifiedTime"].replace("Z", "+00:00")).timestamp() * 1000)
 
         def fetch(path, f=f, native=native):
@@ -80,17 +80,18 @@ def drive_items(folder):
             else:
                 gws(["drive", "files", "get"], params={"fileId": f["id"], "alt": "media",
                                                         "supportsAllDrives": True}, output=path)
-        yield ts, f["name"].strip() + (".pdf" if native else ""), fetch
+        yield ts, f["name"].strip() + (".pdf" if native else ""), fetch, folder
 
 
-def collect(threads, drive_folders, tmp):
+def collect(threads, drive_folders, tmp, dest):
     """Return {filename: {"path", "superseded"}} keeping the latest copy of each name."""
     items = list(gmail_items(threads))
     for folder in drive_folders:
-        items += list(drive_items(folder))
+        folder = re.sub(r".*/folders/([\w-]+).*", r"\1", folder)
+        items += list(drive_items(folder, folder if folder == dest else None))
     items.sort(key=lambda x: x[0])
     files = {}
-    for i, (_, name, fetch) in enumerate(items):
+    for i, (_, name, fetch, src) in enumerate(items):
         path = Path(tmp) / f"{i}_file"
         fetch(path)
         if not path.exists():
@@ -100,7 +101,7 @@ def collect(threads, drive_folders, tmp):
         path = path.rename(Path(tmp) / f"{i}_{name}")
         key = name.lower()
         superseded = files[key]["superseded"] + 1 if key in files else 0
-        files[key] = {"name": name, "path": path, "superseded": superseded}
+        files[key] = {"name": name, "path": path, "superseded": superseded, "in_place": src == dest}
     return files
 
 
@@ -150,10 +151,13 @@ def main():
     Path(tmp).chmod(0o700)
     out, ssn_sets = [], {}
     try:
-        for f in collect(args.thread, args.drive_folder, tmp).values():
+        for f in collect(args.thread, args.drive_folder, tmp, args.folder).values():
             is_pdf = f["path"].read_bytes()[:4] == b"%PDF"
-            drive_id, status = upload_to_drive(f["path"], args.folder, f["name"],
-                                               "application/pdf" if is_pdf else "application/octet-stream")
+            if f["in_place"]:  # already filed in the employee's folder
+                drive_id, status = None, "already there"
+            else:
+                drive_id, status = upload_to_drive(f["path"], args.folder, f["name"],
+                                                   "application/pdf" if is_pdf else "application/octet-stream")
             entry = {"file": f["name"], "drive_id": drive_id, "status": status}
             if f["superseded"]:
                 entry["note"] = f"latest of {f['superseded'] + 1} copies; older ones skipped"
