@@ -55,7 +55,9 @@ def gws(args, params=None, body=None, upload=None, upload_type=None, output=None
         if upload_type:
             cmd += ["--upload-content-type", upload_type]
     if output:
-        cmd += ["--output", str(output)]
+        # Same rule for downloads: write inside the working directory.
+        cwd = str(Path(output).parent)
+        cmd += ["--output", Path(output).name]
     out = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd).stdout
     if "{" not in out:
         return {}

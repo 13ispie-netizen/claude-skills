@@ -44,7 +44,8 @@ def main():
     if tool == "Read" and FORM_FILE.search(target):
         block("onboarding is running, so forms can't be opened directly. Use fetch_forms.py.")
     if tool == "Bash" and SKILL_SCRIPTS not in target and (
-            FORM_FILE.search(target) or "attachments get" in target):
+            FORM_FILE.search(target) or "attachments get" in target
+            or "files export" in target or re.search(r"alt\W+media", target)):
         block("onboarding is running, so forms and attachments can only go through the skill's scripts.")
 
 

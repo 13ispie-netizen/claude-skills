@@ -1,8 +1,10 @@
-"""Move signed forms from Gmail to Drive and print a redacted summary.
+"""Move signed forms from Gmail and/or a shared Drive folder to the employee's folder,
+and print a redacted summary.
 
-Usage: fetch_forms.py --folder DRIVE_FOLDER_ID --thread THREAD_ID [--thread THREAD_ID ...]
+Usage: fetch_forms.py --folder DRIVE_FOLDER_ID [--thread THREAD_ID ...] [--drive-folder ID_OR_URL ...]
 
-- Downloads every attachment in the given threads to a private temp dir.
+- Downloads every attachment in the given threads, and every file in the given
+  Drive folders (subfolders included, Google Docs exported as PDF), to a private temp dir.
 - If the same filename was sent twice, keeps only the latest (older copies are noted).
 - Uploads each form to the Drive folder (skips names already there).
 - Prints JSON: each form's filled fields or text with SSNs redacted, plus an
@@ -12,9 +14,11 @@ Usage: fetch_forms.py --folder DRIVE_FOLDER_ID --thread THREAD_ID [--thread THRE
 import argparse
 import base64
 import json
+import re
 import shutil
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -35,29 +39,68 @@ def walk(part):
         yield from walk(child)
 
 
-def collect(threads, tmp):
-    """Return {filename: {"path", "superseded"}} keeping the latest copy of each name."""
-    files = {}
+def gmail_items(threads):
+    """Yield (timestamp, filename, fetch) for every attachment the employee sent."""
     msgs = []
     for tid in threads:
         t = gws(["gmail", "users", "threads", "get"], params={"userId": "me", "id": tid, "format": "full"})
         msgs += t.get("messages", [])
-    msgs.sort(key=lambda m: int(m.get("internalDate", 0)))
-    for i, m in enumerate(msgs):
+    for m in msgs:
         if "SENT" in m.get("labelIds", []):
             continue  # only what the employee sent back, never Erin's own attachments
         for part in walk(m["payload"]):
-            att = gws(["gmail", "users", "messages", "attachments", "get"],
-                      params={"userId": "me", "messageId": m["id"], "id": part["body"]["attachmentId"]})
-            data = base64.urlsafe_b64decode(att["data"] + "==")
-            name = part["filename"].strip()
-            if data[:4] == b"%PDF" and not name.lower().endswith(".pdf"):
-                name += ".pdf"
-            path = Path(tmp) / f"{i}_{name}"
-            path.write_bytes(data)
-            key = name.lower()
-            superseded = files[key]["superseded"] + 1 if key in files else 0
-            files[key] = {"name": name, "path": path, "superseded": superseded}
+            def fetch(path, m=m, part=part):
+                att = gws(["gmail", "users", "messages", "attachments", "get"],
+                          params={"userId": "me", "messageId": m["id"], "id": part["body"]["attachmentId"]})
+                path.write_bytes(base64.urlsafe_b64decode(att["data"] + "=="))
+            yield int(m.get("internalDate", 0)), part["filename"].strip(), fetch
+
+
+def drive_items(folder):
+    """Yield (timestamp, filename, fetch) for every file in a shared Drive folder, recursively."""
+    folder = re.sub(r".*/folders/([\w-]+).*", r"\1", folder)
+    files = gws(["drive", "files", "list"], params={
+        "q": f"'{folder}' in parents and trashed=false", "pageSize": 200,
+        "supportsAllDrives": True, "includeItemsFromAllDrives": True,
+        "fields": "files(id,name,mimeType,modifiedTime)"}).get("files", [])
+    for f in files:
+        mime = f["mimeType"]
+        if mime == "application/vnd.google-apps.folder":
+            yield from drive_items(f["id"])
+            continue
+        native = mime.startswith("application/vnd.google-apps.")
+        if native and mime.split(".")[-1] not in ("document", "spreadsheet", "presentation"):
+            continue  # shortcuts, forms, etc.
+        ts = int(datetime.fromisoformat(f["modifiedTime"].replace("Z", "+00:00")).timestamp() * 1000)
+
+        def fetch(path, f=f, native=native):
+            if native:
+                gws(["drive", "files", "export"], params={"fileId": f["id"], "mimeType": "application/pdf"},
+                    output=path)
+            else:
+                gws(["drive", "files", "get"], params={"fileId": f["id"], "alt": "media",
+                                                        "supportsAllDrives": True}, output=path)
+        yield ts, f["name"].strip() + (".pdf" if native else ""), fetch
+
+
+def collect(threads, drive_folders, tmp):
+    """Return {filename: {"path", "superseded"}} keeping the latest copy of each name."""
+    items = list(gmail_items(threads))
+    for folder in drive_folders:
+        items += list(drive_items(folder))
+    items.sort(key=lambda x: x[0])
+    files = {}
+    for i, (_, name, fetch) in enumerate(items):
+        path = Path(tmp) / f"{i}_file"
+        fetch(path)
+        if not path.exists():
+            continue
+        if path.read_bytes()[:4] == b"%PDF" and not name.lower().endswith(".pdf"):
+            name += ".pdf"
+        path = path.rename(Path(tmp) / f"{i}_{name}")
+        key = name.lower()
+        superseded = files[key]["superseded"] + 1 if key in files else 0
+        files[key] = {"name": name, "path": path, "superseded": superseded}
     return files
 
 
@@ -94,14 +137,17 @@ def summarize(path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--folder", required=True)
-    ap.add_argument("--thread", action="append", required=True)
+    ap.add_argument("--thread", action="append", default=[])
+    ap.add_argument("--drive-folder", action="append", default=[])
     args = ap.parse_args()
+    if not args.thread and not args.drive_folder:
+        ap.error("give at least one --thread or --drive-folder")
     lock_on()
     tmp = tempfile.mkdtemp(prefix="aa-onb-")
     Path(tmp).chmod(0o700)
     out, ssn_sets = [], {}
     try:
-        for f in collect(args.thread, tmp).values():
+        for f in collect(args.thread, args.drive_folder, tmp).values():
             is_pdf = f["path"].read_bytes()[:4] == b"%PDF"
             drive_id, status = upload_to_drive(f["path"], args.folder, f["name"],
                                                "application/pdf" if is_pdf else "application/octet-stream")

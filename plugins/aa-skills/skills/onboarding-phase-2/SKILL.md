@@ -25,10 +25,10 @@ Run scripts as `python3 "<this skill's dir>/scripts/<script>.py" ...`. Every scr
 ## Steps
 
 1. **Ask once** (single AskUserQuestion): employee's state (CA/NY) if Erin didn't say, how close she is with them, and the tone (brief + admin vs. warm). The audience is always the new employee.
-2. **Find threads.** `search_threads` (metadata/snippets only) for the thread where the employee sent the signed forms, plus the signed offer letter thread if it's separate. Note the latest message id in the forms thread.
+2. **Find threads.** `search_threads` (metadata/snippets only) for the thread where the employee sent the signed forms, plus the signed offer letter thread if it's separate. Note the latest message id in the forms thread. If the employee shared a Drive folder link instead of attaching the forms, note that link (from the snippet) too.
 3. **Folder.** Find `Last, First` under the parent, or create it with gws.
 4. **Checklist.** `checklist.py --folder F --name "Last, First" --state CA|NY` (add `--doc ID` if a copy already exists in the folder). Report the removed lines.
-5. **Forms.** `fetch_forms.py --folder F --thread T1 [--thread T2]`. This uploads the latest copy of every attachment and returns redacted fields plus `ssn_check`. Compare name, address, city, ZIP, and dates across forms yourself. Get the start date, hourly rate, and weekly hours from the offer letter text (for a range, use the median).
+5. **Forms.** `fetch_forms.py --folder F --thread T1 [--thread T2] [--drive-folder LINK]`. This copies the latest copy of every attachment and every file in the shared folder and returns redacted fields plus `ssn_check`. Compare name, address, city, ZIP, and dates across forms yourself. Get the start date, hourly rate, and weekly hours from the offer letter text (for a range, use the median).
 6. **State form.**
    - **CA:** `fill_forms.py de34 --folder F --name "Last, First" --first .. --mi .. --last .. --street-num .. --street-name .. [--unit ..] --city .. --state .. --zip .. --start MMDDYY`. If ZIPs disagree, use the one that matches the city and flag it.
    - **NY, no PFL waiver among the forms:** `fill_forms.py pfl --folder F --name "Last, First" --employee "First Last" --rate R --hours H`. Keep the `local_path` for step 7.
