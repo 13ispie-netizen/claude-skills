@@ -13,7 +13,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from _common import gws  # noqa: E402
-from boxes import indent  # noqa: E402
 
 MASTER = "1YdnWPbwk8JLwS1d4S17qjGCIKma0DpUBRLa5eBaJ9DI"  # "Employee On-Boarding Checklist [dupliacte me!]"
 
@@ -46,10 +45,7 @@ def paragraphs(doc_id):
         if not p:
             continue
         text = "".join(r.get("textRun", {}).get("content", "") for r in p["elements"]).strip()
-        boxed = text[:1] in "\u2610\u2611"
-        text = text.lstrip("\u2610\u2611 ")
-        # Nesting = how far the line is indented (typed boxes have no bullet levels).
-        level = indent(d, p) if boxed or "bullet" in p else -1
+        level = p["bullet"].get("nestingLevel", 0) if "bullet" in p else -1
         out.append((el["startIndex"], el["endIndex"], level, text))
     return out
 
