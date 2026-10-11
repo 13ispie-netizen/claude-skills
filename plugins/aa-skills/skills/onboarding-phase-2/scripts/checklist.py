@@ -13,6 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from _common import gws  # noqa: E402
+from boxes import indent  # noqa: E402
 
 MASTER = "1YdnWPbwk8JLwS1d4S17qjGCIKma0DpUBRLa5eBaJ9DI"  # "Employee On-Boarding Checklist [dupliacte me!]"
 
@@ -22,15 +23,15 @@ REMOVE = {
         (r"\bNY version\b", True),
         (r"\(NY\)", True),
         (r"^Different for NY\b", True),
-        (r"^NY:", True),
+        (r"^NY\b", True),  # "NY:", "NY IT-2104", a bare "NY" heading
         (r"^If NY employee\b", True),
-        (r"^NY$", True),
     ],
     "NY": [  # NY employee: drop CA items
         (r"^CA Employee.s Withholding", False),
+        (r"^CA\b", True),
+        (r"\(CA\)", True),
         (r"\bDE 34\b", False),
         (r"Calsavers", True),
-        (r"^CA$", True),
         (r"^CA \(double-check", True),
         (r"^Notice to Employee$", True),
     ],
@@ -45,7 +46,10 @@ def paragraphs(doc_id):
         if not p:
             continue
         text = "".join(r.get("textRun", {}).get("content", "") for r in p["elements"]).strip()
-        level = p["bullet"].get("nestingLevel", 0) if "bullet" in p else -1
+        boxed = text[:1] in "\u2610\u2611"
+        text = text.lstrip("\u2610\u2611 ")
+        # Nesting = how far the line is indented (typed boxes have no bullet levels).
+        level = indent(d, p) if boxed or "bullet" in p else -1
         out.append((el["startIndex"], el["endIndex"], level, text))
     return out
 
@@ -61,7 +65,7 @@ def main():
 
     doc_id = a.doc or gws(["drive", "files", "copy"],
                           params={"fileId": MASTER, "supportsAllDrives": True},
-                          body={"name": f"Employee On-Boarding Checklist_{a.name}", "parents": [a.folder]})["id"]
+                          body={"name": f"[executive] Employee On-Boarding Checklist_{a.name}", "parents": [a.folder]})["id"]
 
     paras = paragraphs(doc_id)
     ranges, removed, i = [], [], 0
