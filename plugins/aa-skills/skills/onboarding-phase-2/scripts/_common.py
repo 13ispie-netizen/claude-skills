@@ -31,7 +31,7 @@ def ensure_pypdf():
     except ImportError:
         pass
     py = VENV / "bin" / "python"
-    if Path(sys.executable).resolve() == py.resolve():
+    if Path(sys.prefix).resolve() == VENV.resolve():
         raise SystemExit("pypdf/cryptography install failed in " + str(VENV))
     if not py.exists():
         subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)
