@@ -45,6 +45,7 @@ Apply this styling to every .docx or PDF created for Architecture + Advocacy. Re
 - Bash path: `/sessions/<session-id>/mnt/Cowork Playground/00. Resources/A+A+Logos-03.png`
 - Size: 72×72px
 - Position: floating, anchored top-right of page
+- Text wrapping: **Wrap text** (square, both sides). Required -- with no wrapping the logo placement breaks.
 - **Never** use tab stops or table columns to position the logo — they break in Word
 
 ```javascript
@@ -64,7 +65,7 @@ new ImageRun({
     },
     allowOverlap: false,
     behindDocument: false,
-    wrap: { type: 'none' },
+    wrap: { type: TextWrappingType.SQUARE, side: TextWrappingSide.BOTH_SIDES },
   },
 })
 ```
@@ -196,7 +197,7 @@ const {
   Document, Packer, Paragraph, TextRun, ImageRun, ExternalHyperlink,
   AlignmentType, BorderStyle,
   HorizontalPositionRelativeFrom, HorizontalPositionAlign,
-  VerticalPositionRelativeFrom,
+  VerticalPositionRelativeFrom, TextWrappingType, TextWrappingSide,
 } = require('/tmp/node_modules/docx');
 const fs = require('fs');
 
