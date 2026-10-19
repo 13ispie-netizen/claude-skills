@@ -75,6 +75,14 @@ Internships, scholarships, jobs, networking events from the two resource channel
 ### 8. Inspo from Other Orgs
 From `#inspo`.
 
+### 9. Anonymous Feedback
+Always the last section, every issue, even when nothing else changes. Never cut under the empty-section rule. Use verbatim:
+
+**Anonymous Feedback**
+Got something on your mind? Tell us anonymously.
+- [General feedback](https://forms.gle/1UfNYPTMLZYZhnfz7) goes to Erin, our Executive Director.
+- [Feedback about the Executive Director](https://docs.google.com/forms/d/1-50CXLRfNWdRYZPVGe80VL14k-yZLx0scqlNjBcQQU4/viewform), or anything you'd rather Erin not see, goes to Ellie, our Board Chair.
+
 ## Freshness rule (Resources and Inspo)
 
 Never include an item unless its channel has messages from the last 30 days. Then check each item individually and drop anything whose deadline, application date, or event date has already passed. If nothing survives, omit the section under the empty-section rule.
