@@ -40,7 +40,7 @@ Use the module's menu language as the starting point, then tailor it to the proj
 ## Step 2: standing rules (also on the fee worksheet's Rules tab)
 
 - **PM inside every phase**, as its last numbered item, never a standalone task: up to [N] 1-hour virtual meetings with Client (every other week) + emails and phone calls as needed. N = ROUNDUP(phase weeks / 2).
-- Virtual meetings = 1 hr. In-person meetings carry 1 hr drive time each way (pricing only; don't write it in the doc).
+- Virtual meetings = 1 hr. In-person meetings carry ½ hr drive time each way, 1 hr per trip (pricing only; don't write it in the doc).
 - **Deliverables are always a lettered list** (a, b, c), nested under the activity that produces them.
 - Every count is a cap: "up to X".
 - Third person: "Architecture + Advocacy will...". Define (The Project), (Client), (Project Team), (the Site) in the Overview.
