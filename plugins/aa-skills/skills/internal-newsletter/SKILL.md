@@ -72,6 +72,10 @@ From the `#kudos` channel. End, every time, with exactly:
 ### 7. Resources
 Internships, scholarships, jobs, networking events from the two resource channels.
 
+Always end this section with the office hours item, every issue. It is standing content: if no channel items survive the freshness rule, keep the Resources heading with this item alone (never cut under the empty-section rule). Use verbatim:
+
+Need help with A+A, professional, or life stuff? Want to get to know our ED better? Book time at [Erin's Office Hours](https://calendar.app.google/w1SbkYs4j4b8Q42H7). Can't find a time that works with your schedule? Email me at erin@architectureandadvocacy.org.
+
 ### 8. Inspo from Other Orgs
 From `#inspo`.
 
