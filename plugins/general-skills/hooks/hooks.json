@@ -9,6 +9,15 @@
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/ssn-guard.py\""
           }
         ]
+      },
+      {
+        "matcher": "mcp__.*Gmail.*__(send_message|reply|forward)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/email-send-guard.py\""
+          }
+        ]
       }
     ],
     "Stop": [
