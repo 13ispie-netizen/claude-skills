@@ -43,9 +43,15 @@ writes to Google Contacts — Contacts access is strictly read-only.
 
 Two ways in. Pick by environment:
 
-- **Claude Code / any terminal (preferred, faster):** the `gws` CLI for both Contacts and Sheets.
+- **Claude Code / any terminal (preferred, faster):** the `gws` CLI for Sheets.
   Note `gws` prints a `Using keyring backend: keyring` line to stdout — strip it (`grep -v keyring`)
   before piping into a JSON parser.
+- **Contacts always go through Zapier.** `gws` has no Contacts scope (it returns 403 "insufficient
+  authentication scopes"), so don't try it. Use the Zapier Google Contacts People API proxy:
+  `execute_zapier_write_action`, `selected_api` `GoogleContactsCLIAPI`, action
+  `code_action_googlecontactscliapi__people_api_proxy`, params `{"method":"GET","url":"<full URL>"}`.
+  Use the proxy rather than `_zap_raw_request` because the raw request drops repeated query
+  params, which breaks `people:batchGet`.
 - **Chat / Cowork (no terminal):** **Zapier MCP** raw requests (Google Sheets + Squarespace
   Commerce are connected), or the Google connectors.
 
@@ -68,7 +74,15 @@ Squarespace has **no** `gws` equivalent — Phase B always goes through Zapier M
 - The `.` (single period) last-name placeholder **is accepted** by Squarespace (verified).
 - A genuine duplicate returns a tool **error** whose message contains `already exists`. That is a
   SUCCESS case — count it as synced and mark the row.
-- Google People `people:batchGet` caps at 200 resource names per call; chunk at 50.
+- Google People `people:batchGet` caps at 200 resource names per call; chunk at 50. Each chunk's
+  response is too big to show inline and gets saved to a file, so parse it with a script.
+- **Use only `create_contact` for Squarespace.** The `bulk_create_contacts` code action returns 403
+  Forbidden on every contact. Send `create_contact` calls in parallel batches of ~30.
+- Squarespace profiles **can't be edited through the API** (403). If a name is wrong after it syncs,
+  tell Erin to fix it in Squarespace herself.
+- When `create_contact` hits an existing profile, it sometimes returns that profile instead of an
+  `already exists` message. If the result shows `acceptsMarketing: false`, the person stays
+  opted out. List them in the report so Erin can turn their opt-in on by hand.
 
 ---
 
