@@ -71,7 +71,7 @@ Squarespace has **no** `gws` equivalent — Phase B always goes through Zapier M
   words like "error", "reject", "fail", or "placeholder" — this connector is LLM-mediated and will
   sometimes *echo such wording back as a fake result* instead of calling the API. Describe only
   the successful action you want.
-- The `.` (single period) last-name placeholder **is accepted** by Squarespace (verified).
+- **Never put a placeholder in `lastName`** (no `.`, no repeated first name). Erin's rule (2026-10-28): if there's no last name, leave it blank. If Squarespace rejects a blank last name, stop and ask Erin -- don't invent one.
 - A genuine duplicate returns a tool **error** whose message contains `already exists`. That is a
   SUCCESS case — count it as synced and mark the row.
 - Google People `people:batchGet` caps at 200 resource names per call; chunk at 50. Each chunk's
@@ -122,7 +122,7 @@ then `https://people.googleapis.com/v1/people:batchGet?resourceNames=…&resourc
 |---|---|
 | A `email` | primary `emailAddresses[].value` (the one with `metadata.primary: true`, else the first) |
 | B `First name` | `names[0].givenName`, credential suffixes stripped. **Leave BLANK if the contact has no name** — never substitute the email local-part. The row still gets appended; Phase B then holds it back until Erin fills the name in (step 6). |
-| C `Last name` | `names[0].familyName`, credential suffixes stripped. Blank if absent (Phase B substitutes a placeholder). |
+| C `Last name` | `names[0].familyName`, credential suffixes stripped. Blank if absent (stays blank in Squarespace too). |
 | D `Company` | `organizations[0].name` |
 | E `Job Title` | `organizations[0].title` (append `, <department>` only if the title alone is meaningless) |
 | F `Pronouns` | parse a `Pronouns: …` line out of `biographies[0].value` — the auto-tagger stores them there. Blank if absent. |
@@ -251,7 +251,7 @@ For each confirmed row — skipping the held-back rows from step 6 — call `cre
 - `email` = column A (trimmed)
 - `firstName` = column B, always. There is no fallback: a row without a real first name never
   reaches this step.
-- `lastName` = column C, or if blank, `.` (a missing surname is harmless — it is never the greeting)
+- `lastName` = column C. If blank, leave it blank (omit it or send an empty string) -- never a placeholder
 - `locale` = `en-US`
 - `acceptsMarketing` = `true`
 
@@ -301,6 +301,5 @@ Then remind her the new people will be included next time she sends to marketing
 - Safe to re-run anytime. Phase A dedupes on email, Phase B skips already-synced rows.
 - To re-sync someone (or backfill a `pre-existing` row), clear their `Synced` cell first.
 - To re-pull someone from `'@@new`, delete their sheet row (or they'll dedupe out).
-- If Squarespace ever rejects the `.` last-name placeholder, reuse the first name as the last name.
 - Squarespace has no API for targeting a specific named mailing list — Create Contact only adds to
   the Contacts address book with the marketing opt-in, which is why the sheet holds segmentation.
