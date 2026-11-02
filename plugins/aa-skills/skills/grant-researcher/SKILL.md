@@ -65,7 +65,7 @@ Apply these rules for each field:
 |---|---|
 | **Due Date** | Find the application deadline. If not listed, search web history of past cycles and return the **1st of the same month next year** (e.g., if historically due April 14 → return April 1, 2027) |
 | **Application Type** | Choose one: `Application` or `LOI` |
-| **Revisit Date** | Exactly 2 months before the Due Date. May fall in a future year — calculate carefully. |
+| **Revisit Date** | **Never blank.** Exactly 2 months before the Due Date. May fall in a future year — calculate carefully. If no Due Date can be found (no posted call, rolling, or evergreen), still set one: the 1st of the month ~6 months before the event's usual date (when its call would likely open), or ~1 month out for rolling/evergreen. Leave the Due Date blank rather than guess it. |
 | **Notification Date** | Date grant winners will be announced. Search funder site and past cycles if not on the page. |
 | **Grant Name** | Full official name, hyperlinked to the provided URL |
 | **Use** | Choose one: `Project Restricted`, `Unrestricted`, `Individual`, `Fellowship`, `Capacity`, `Award`, or `Conference` |
