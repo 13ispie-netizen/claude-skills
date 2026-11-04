@@ -112,15 +112,18 @@ def main():
         {"spreadsheetId": CFG["tracker_id"], "fields": "sheets.properties(sheetId,title),sheets.conditionalFormats"}))
     tab = meta["sheets"][0]["properties"]; T = tab["title"]
     allrows = values(CFG["tracker_id"], f"'{T}'!A1:AZ1000")
-    H = next(n for n, r in enumerate(allrows[:10]) if r and "name" in r[0].lower())  # header row (0-based); rows above it are notes
+    H = next(n for n, r in enumerate(allrows[:10]) if any("name" in c.lower() for c in r))  # header row (0-based); rows above it are notes
     rows = allrows[H:]
     hdr = [h.lower() for h in rows[0]]
+    # name / email columns found by header, so Erin can reorder them
+    NC = next((i for i, h in enumerate(hdr) if "full name" in h), next(i for i, h in enumerate(hdr) if "name" in h))
+    EC = next((i for i, h in enumerate(hdr) if "email" in h), None)
     col = {}
     for k, kw in COLS.items():
         hit = [i for i, h in enumerate(hdr) if kw in h]
         if hit: col[k] = hit[0]
     missing_cols = [k for k in COLS if k not in col]
-    people = [(i, (r + [""] * len(hdr))) for i, r in enumerate(rows[1:], H + 2) if r and r[0].strip()]
+    people = [(i, (r + [""] * len(hdr))) for i, r in enumerate(rows[1:], H + 2) if len(r) > NC and r[NC].strip()]
     cell = lambda r, k: r[col[k]] if k in col else ""
 
     # last refresh date (for the Zelle reminder)
@@ -149,10 +152,10 @@ def main():
 
     plan, images, unknown, matched = {}, [], [], set()   # plan: (row, key) -> person name
     def want(i, r, k, why):
-        if k in col and cell(r, k) not in ("TRUE", "N/A"): plan[(i, k)] = (r[0], why)
+        if k in col and cell(r, k) not in ("TRUE", "N/A"): plan[(i, k)] = (r[NC], why)
 
     for i, r in people:
-        name = r[0]
+        name = r[NC]
         fs = [k for k in cur if same_person(name, k)]; matched |= set(fs)
         files = [f for k in fs for f in cur[k]]
         for f in files:
@@ -166,7 +169,7 @@ def main():
         if not any(classify(f["name"]) == "mrt" for f in files):
             if any(classify(f["name"]) == "mrt" for k in prev if same_person(name, k) for f in prev[k]):
                 want(i, r, "mrt", "last semester's folder")
-        if r[1].strip().lower() in s_keys or norm(name) in s_keys: want(i, r, "survey", "survey responses")
+        if (EC is not None and r[EC].strip().lower() in s_keys) or norm(name) in s_keys: want(i, r, "survey", "survey responses")
         if norm(name) in cleared: want(i, r, "drive", "vehicle form, column A")
 
     new_people = []
@@ -178,7 +181,7 @@ def main():
 
     for e in a.extra:
         nm, _, k = e.partition("=")
-        hit = [(i, r) for i, r in people if norm(r[0]) == norm(nm)]
+        hit = [(i, r) for i, r in people if norm(r[NC]) == norm(nm)]
         if hit and k in col: want(hit[0][0], hit[0][1], k, "image review")
         else: print(f"! could not apply --extra {e}")
 
@@ -209,13 +212,13 @@ def main():
         if data:
             gws("sheets", "spreadsheets", "values", "batchUpdate", "--params", json.dumps({"spreadsheetId": CFG["tracker_id"]}),
                 "--json", json.dumps({"valueInputOption": "USER_ENTERED", "data": data}))
-        if new_people: add_rows(T, tab["sheetId"], rows, people, col, new_people, H)
+        if new_people: add_rows(T, tab["sheetId"], rows, people, col, new_people, H, NC)
         log(today, len(plan), new_people, [im["id"] for im in images], log_tabs)
     print(json.dumps(report, indent=1))
 
 
-def add_rows(T, sid, rows, people, col, new_people, H):
-    """Append rows: copy the first data row (formulas, checkboxes, formats), then write name + reset boxes."""
+def add_rows(T, sid, rows, people, col, new_people, H, NC):
+    """Append rows: copy the first data row (formulas, checkboxes, formats), then write full name + reset boxes."""
     last = max(i for i, _ in people); width = len(rows[0]); first = H + 2
     tpl = values(CFG["tracker_id"], f"'{T}'!A{first}:{col_letter(width - 1)}{first}", "FORMULA")[0]
     reqs = [{"insertDimension": {"range": {"sheetId": sid, "dimension": "ROWS", "startIndex": last, "endIndex": last + len(new_people)}, "inheritFromBefore": True}},
@@ -233,8 +236,7 @@ def add_rows(T, sid, rows, people, col, new_people, H):
         rn = last + 1 + n; row = []
         for c, v in enumerate(tpl):
             if isinstance(v, str) and v.startswith("="): row.append(None)        # copyPaste already shifted the formula
-            elif c == 0: row.append(p["name"])
-            elif c in (1, 2): row.append("")
+            elif c == NC: row.append(p["name"])
             elif "st_waiver" in col and c == col["st_waiver"]: row.append("N/A")
             elif c in col.values(): row.append(c in {col[k] for k in p["keys"] if k in col})
             else: row.append("")
