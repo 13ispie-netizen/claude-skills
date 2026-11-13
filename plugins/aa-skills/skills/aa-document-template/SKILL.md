@@ -1,11 +1,11 @@
 ---
 name: aa-document-template
 description: >
-  Apply A+A branded styling to any Word (.docx) or PDF document created for Architecture + Advocacy.
+  Apply A+A branded styling to any Word (.docx), PDF, or Google Doc created for Architecture + Advocacy.
   Trigger whenever Erin creates, exports, or converts any document for A+A — proposals, reports,
   agendas, one-pagers, briefs, or any other formal output. Also trigger when she says "use the A+A
   template," "brand this," or "make it look like our docs." Always use this skill when the output
-  is a .docx or .pdf intended for external or internal A+A use.
+  is a .docx, .pdf, or Google Doc intended for external or internal A+A use.
 ---
 
 # A+A Document Template
