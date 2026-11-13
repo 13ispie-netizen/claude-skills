@@ -297,11 +297,35 @@ Set Playwright PDF margins to 0 — margins are handled by `padding: 1in` on bod
 
 ---
 
+## Implementation: Google Doc (gws CLI)
+
+Use when the output is a Google Doc. Always use the `gws` CLI; never ask Erin to connect a Docs connector.
+
+1. **Create:** upload HTML with Drive (`create_file`, `contentMimeType: text/html`, `parentId` = source folder). Use `<h1>`/`<h2>`/`<h3>`, `<p>`, `<ul>`, `<b>`, `<i>`, `<a>`. Embed the logo as a base64 `<img>` at the start of the org-name line; it imports as a floating top-right image. Do not rely on HTML CSS for weights or page breaks; the import drops both.
+2. **Style with `gws docs documents batchUpdate`** (read first, guard with `writeControl.requiredRevisionId`). Set every heading paragraph explicitly with `updateTextStyle` (`weightedFontFamily`, `bold`, `fontSize`, `foregroundColor`):
+
+| Element | fontFamily / weight | bold | Size | Color |
+|---|---|---|---|---|
+| Org name line | Public Sans / 200 | false | 13 | `f5a17d` |
+| H1 | Public Sans / 900 | **true** | 19 | `36354d` |
+| Subtitle/date | Public Sans / 300 | false | 11 | `f5a17d` |
+| H2 (ALL CAPS) | Public Sans / 200 | false | 13 | `f5a17d` |
+| H3 | Public Sans / 800 | **true** | 12 | `36354d` |
+| Bold labels in body | Public Sans / 800 | **true** | 11 | `36354d` |
+| Body | Nunito / 400 | false | 11 | `36354d` |
+
+**Critical:** weights 800/900 only stick with `bold: true` in the same request. With `bold: false`, Docs silently resets them to 400. Weights 200/300 work with bold off.
+
+3. Only three heading levels: convert any HEADING_4 to HEADING_3. Set `keepWithNext: true` on headings. Page breaks: `updateParagraphStyle` with `pageBreakBefore: true` on the section heading.
+4. **Verify:** export to PDF (`gws drive files export ... --output x.pdf`) and check embedded fonts with `strings x.pdf | grep BaseFont`. Expect PublicSans-Black, PublicSans-ExtraBold, PublicSans-ExtraLight, and Nunito. If you see only PublicSans-Regular, the weights didn't apply.
+
+---
+
 ## Workflow
 
 1. Gather document content
 2. Identify: title, subtitle/context, date
-3. Choose format (.docx or .pdf)
+3. Choose format (.docx, .pdf, or Google Doc)
 4. Build using helpers above — no tables, no Word bullet renderer, preserve all hyperlinks
 5. Save to source folder: `YYMMDD_A+A_descriptive-name.docx/.pdf`
 6. Present via `mcp__cowork__present_files`
